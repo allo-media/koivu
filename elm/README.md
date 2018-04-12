@@ -4,7 +4,7 @@ Koivu
 An interactive tree representation of [AlloMedia](https://www.allo-media.fr/)'s
 Customer Path ([demo](https://allo-media.github.io/koivu/)).
 
-![](https://i.imgur.com/QRRqvF4.png)
+![](https://i.imgur.com/SU7mcqK.png)
 
 ```elm
 import Koivu
