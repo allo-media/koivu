@@ -13,6 +13,9 @@ settings =
     , maxChildren = 4
     , maxGlobalQty = 200000
     , maxLevels = 3
+    , nodeWidth = 140
+    , nodeHeight = 80
+    , nodePadding = 10
     }
 
 

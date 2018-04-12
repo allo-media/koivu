@@ -1,6 +1,6 @@
 module Koivu.SvgEditor exposing (view)
 
-import Koivu.Tree exposing (EditorConfig, Node(..))
+import Koivu.Tree exposing (EditorConfig, Node(..), Settings)
 import Koivu.NodeHtml as NodeHtml
 import Svg exposing (Svg)
 import Svg.Attributes exposing (..)
@@ -8,30 +8,18 @@ import TreeDiagram exposing (Tree, TreeLayout)
 import TreeDiagram.Svg as SvgTree
 
 
-type alias NodeStyle =
-    { width : Int
-    , height : Int
-    }
-
-
-nodeStyle : NodeStyle
-nodeStyle =
-    -- FIXME: this should probably be part of settings
-    { width = 135, height = 80 }
-
-
 (=>) : (String -> a) -> b -> a
 (=>) prop value =
     prop (toString value)
 
 
-treeLayout : TreeLayout
-treeLayout =
+treeLayout : Settings -> TreeLayout
+treeLayout { nodeWidth, nodeHeight, nodePadding } =
     { orientation = TreeDiagram.topToBottom
-    , levelHeight = 100
-    , siblingDistance = 200
-    , subtreeDistance = 150
-    , padding = nodeStyle.height + 20
+    , levelHeight = nodeHeight + nodePadding
+    , siblingDistance = nodeWidth + nodePadding
+    , subtreeDistance = nodeWidth + nodePadding
+    , padding = nodeHeight + nodePadding
     }
 
 
@@ -47,24 +35,24 @@ drawLine ( targetX, targetY ) =
         []
 
 
-toCenter : String
-toCenter =
+toCenter : Settings -> String
+toCenter { nodeWidth, nodeHeight } =
     let
         padX =
-            -(nodeStyle.width // 2)
+            -(nodeWidth // 2)
 
         padY =
-            -(nodeStyle.height // 2)
+            -(nodeHeight // 2)
     in
         "translate(" ++ toString padX ++ " " ++ toString padY ++ ")"
 
 
 drawNode : EditorConfig msg -> ( Int, Node ) -> Svg msg
-drawNode config ( level, node ) =
+drawNode ({ settings } as config) ( level, node ) =
     Svg.foreignObject
-        [ width => nodeStyle.width
-        , height => nodeStyle.height
-        , transform toCenter
+        [ width => settings.nodeWidth
+        , height => settings.nodeHeight
+        , transform (toCenter settings)
         ]
         [ NodeHtml.view config level node ]
 
@@ -78,4 +66,4 @@ toTree config level ((Node nodeInfo) as node) =
 view : EditorConfig msg -> Node -> Svg msg
 view config node =
     toTree config 0 node
-        |> SvgTree.draw treeLayout (drawNode config) drawLine
+        |> SvgTree.draw (treeLayout config.settings) (drawNode config) drawLine

@@ -62,6 +62,9 @@ type alias Settings =
     , maxGlobalQty : Int
     , maxLevels : Int
     , minNodeQty : Int
+    , nodeWidth : Int
+    , nodeHeight : Int
+    , nodePadding : Int
     }
 
 
