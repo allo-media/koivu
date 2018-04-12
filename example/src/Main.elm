@@ -21,6 +21,6 @@ settings =
 
 main : Program Never Model Msg
 main =
-    Tree.empty
+    Tree.demoTree
         |> Koivu.setup settings
         |> Html.program

@@ -1,7 +1,7 @@
 module Koivu
     exposing
         ( Model
-        , Msg(..)
+        , Msg
         , Program
         , setup
         )
@@ -10,10 +10,6 @@ module Koivu
 
 
 # Minimal application setup
-
-    import Koivu exposing (Model, Msg, setup)
-    import Koivu.Tree as Tree exposing (Node(..), Settings)
-    import Html
 
     settings : Settings
     settings =
@@ -30,7 +26,7 @@ module Koivu
 
     main : Program Never Model Msg
     main =
-        Tree.empty
+        Tree.demoTree
             |> Koivu.setup settings
             |> Html.program
 
@@ -54,8 +50,7 @@ import Koivu.SvgEditor as SvgEditor
 type alias Model =
     { root : Node
     , editedNode : Maybe Int
-    , qty : Int
-    , autoNormalize : Bool
+    , settings : Settings
     }
 
 
@@ -90,9 +85,9 @@ type alias Program =
 setup : Settings -> Node -> Program
 setup settings root =
     { init = init settings root
-    , subscriptions = subscriptions settings
-    , update = update settings
-    , view = view settings
+    , subscriptions = subscriptions
+    , update = update
+    , view = view
     }
 
 
@@ -100,24 +95,23 @@ init : Settings -> Node -> ( Model, Cmd Msg )
 init settings root =
     { root = root |> Tree.distributeQty settings.globalQty
     , editedNode = Nothing
-    , qty = settings.globalQty
-    , autoNormalize = settings.autoNormalize
+    , settings = settings
     }
         ! []
 
 
-distributeAndNormalize : Settings -> Int -> Node -> Node
-distributeAndNormalize settings qty root =
+distributeAndNormalize : Settings -> Node -> Node
+distributeAndNormalize settings root =
     root
-        |> Tree.distributeQty qty
+        |> Tree.distributeQty settings.globalQty
         |> if settings.autoNormalize then
             Tree.normalize settings.minNodeQty
            else
             identity
 
 
-update : Settings -> Msg -> Model -> ( Model, Cmd Msg )
-update settings msg ({ autoNormalize, qty } as model) =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg ({ settings } as model) =
     case msg of
         AppendChild id ->
             let
@@ -132,10 +126,10 @@ update settings msg ({ autoNormalize, qty } as model) =
                         | root =
                             model.root
                                 |> Tree.appendChild id newNode
-                                |> distributeAndNormalize settings qty
+                                |> distributeAndNormalize settings
                     }
             in
-                newModel |> update settings (EditNode nodeInfo.id)
+                newModel |> update (EditNode nodeInfo.id)
 
         CancelEdit ->
             { model | editedNode = Nothing } ! []
@@ -149,7 +143,7 @@ update settings msg ({ autoNormalize, qty } as model) =
                 , root =
                     model.root
                         |> Tree.deleteNode id
-                        |> distributeAndNormalize settings qty
+                        |> distributeAndNormalize settings
             }
                 ! []
 
@@ -170,12 +164,12 @@ update settings msg ({ autoNormalize, qty } as model) =
 
         SetAutoNormalize autoNormalize ->
             { model
-                | autoNormalize = autoNormalize
-                , root =
+                | root =
                     if autoNormalize then
                         model.root |> Tree.normalize settings.minNodeQty
                     else
                         model.root
+                , settings = { settings | autoNormalize = autoNormalize }
             }
                 ! []
 
@@ -184,8 +178,8 @@ update settings msg ({ autoNormalize, qty } as model) =
 
         UpdateQty qty ->
             { model
-                | qty = qty
-                , root = model.root |> distributeAndNormalize settings qty
+                | root = model.root |> distributeAndNormalize settings
+                , settings = { settings | globalQty = qty }
             }
                 ! []
 
@@ -194,7 +188,7 @@ update settings msg ({ autoNormalize, qty } as model) =
                 | root =
                     model.root
                         |> Tree.distributeShare id share
-                        |> distributeAndNormalize settings qty
+                        |> distributeAndNormalize settings
             }
                 ! []
 
@@ -203,8 +197,8 @@ update settings msg ({ autoNormalize, qty } as model) =
 -- Subscriptions
 
 
-subscriptions : Settings -> Model -> Sub Msg
-subscriptions _ _ =
+subscriptions : Model -> Sub Msg
+subscriptions _ =
     -- FIXME: this triggers many updates for no reason, couldn't filter Esc
     -- key here ?
     Sub.batch [ Keyboard.ups KeyUp ]
@@ -214,20 +208,20 @@ subscriptions _ _ =
 -- Views
 
 
-formView : Settings -> Model -> Html Msg
-formView settings model =
+formView : Model -> Html Msg
+formView ({ settings } as model) =
     div [ class "normalize-form has-text-centered" ]
         [ button
             [ class "button"
             , onClick Normalize
-            , disabled <| model.autoNormalize || not (Tree.isUnderfed settings.minNodeQty model.root)
+            , disabled <| settings.autoNormalize || not (Tree.isUnderfed settings.minNodeQty model.root)
             ]
             [ text "Normalize" ]
         , label [ class "checkbox" ]
             [ input
                 [ type_ "checkbox"
                 , onCheck SetAutoNormalize
-                , checked model.autoNormalize
+                , checked settings.autoNormalize
                 ]
                 []
             , text " Auto"
@@ -235,8 +229,8 @@ formView settings model =
         ]
 
 
-view : Settings -> Model -> Html Msg
-view settings model =
+view : Model -> Html Msg
+view model =
     let
         editorConfig =
             { appendNode = AppendChild
@@ -249,15 +243,11 @@ view settings model =
             , updateLabel = UpdateLabel
             , updateGlobalQty = UpdateQty
             , updateShare = UpdateShare
-            , settings =
-                { settings
-                    | autoNormalize = model.autoNormalize
-                    , globalQty = model.qty
-                }
+            , settings = model.settings
             }
     in
         div [ class "koivu" ]
             [ div [ class "koivu-tree" ]
                 [ SvgEditor.view editorConfig model.root ]
-            , formView settings model
+            , formView model
             ]
