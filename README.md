@@ -7,7 +7,7 @@ An interactive tree representation of [AlloMedia](https://www.allo-media.fr/)'s 
 
 This repository holds code for:
 
-- An [Elm component] containing the logic of the component
+- An [Elm package] containing the logic of the component
 - An [npm package] containing the SASS styles for the component
 
 > Note: while open sourced, these packages are most likely to be addressing the
