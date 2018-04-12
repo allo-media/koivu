@@ -1,8 +1,6 @@
 koivu
 =====
 
-[![CircleCI](https://circleci.com/gh/allo-media/koivu.svg?style=svg)](https://circleci.com/gh/allo-media/koivu)
-
 An interactive tree representation of [AlloMedia](https://www.allo-media.fr/)'s
 Customer Path ([demo](https://allo-media.github.io/koivu/)).
 
