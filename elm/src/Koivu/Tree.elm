@@ -24,7 +24,30 @@ module Koivu.Tree
 
 {-| A representation of a Classification Tree.
 
-@docs Node, NodeInfo, allowExpand, appendChild, createNode, deleteNode, distributeShare, distributeQty, demoTree, emptyTree, encode, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed, normalize, updateLabel, updateShare
+
+# Basics
+
+@docs Node, NodeInfo
+
+
+# Building a tree
+
+@docs empty, demoTree, appendChild, createNode, deleteNode, updateLabel, updateShare
+
+
+# Querying a tree
+
+@docs allowExpand, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed
+
+
+# Normalizing a tree
+
+@docs distributeShare, distributeQty, normalize
+
+
+# Encoding
+
+@docs encode
 
 -}
 
@@ -32,10 +55,14 @@ import Json.Encode as Encode
 import Koivu.Internal.Settings exposing (Settings)
 
 
+{-| A tree node
+-}
 type Node
     = Node NodeInfo
 
 
+{-| A tree node information
+-}
 type alias NodeInfo =
     { id : Int
     , label : String
@@ -49,6 +76,13 @@ type alias NodeInfo =
 -- Encoders
 
 
+{-| A tree JSON encoder
+
+    demoTree
+    |> encode
+    |> Json.Encode.encode 2
+
+-}
 encode : Node -> Encode.Value
 encode (Node nodeInfo) =
     Encode.object
@@ -61,11 +95,15 @@ encode (Node nodeInfo) =
 -- Utils
 
 
+{-| Check whether a node is allowed to append new children
+-}
 allowExpand : Settings -> Int -> List Node -> Bool
 allowExpand { maxChildren, maxLevels } level children =
     List.length children < maxChildren && level < maxLevels
 
 
+{-| Append a new child to a node identified by its id in a tree
+-}
 appendChild : Int -> Node -> Node -> Node
 appendChild id newNode (Node root) =
     if root.id == id then
@@ -79,6 +117,11 @@ appendChild id newNode (Node root) =
             }
 
 
+{-| Create a new node to be addable to a given tree.
+
+A unique identifier is generated for this node.
+
+-}
 createNode : Node -> Node
 createNode (Node root) =
     let
@@ -94,6 +137,8 @@ createNode (Node root) =
             }
 
 
+{-| Deletes a node from a tree, by its id
+-}
 deleteNode : Int -> Node -> Node
 deleteNode id root =
     case getParent id root of
@@ -110,6 +155,8 @@ deleteNode id root =
             root
 
 
+{-| Distributes a quantity across all nodes in a tree
+-}
 distributeQty : Int -> Node -> Node
 distributeQty qty (Node node) =
     let
@@ -123,6 +170,8 @@ distributeQty qty (Node node) =
             }
 
 
+{-| Distributes shares to a given node siblings in a tree
+-}
 distributeShare : Int -> Int -> Node -> Node
 distributeShare id share node =
     let
@@ -142,6 +191,8 @@ distributeShare id share node =
             |> updateShare id share
 
 
+{-| Find a node in a tree, by its id
+-}
 findNode : Int -> Node -> Maybe Node
 findNode id root =
     if getProp .id root == id then
@@ -155,11 +206,15 @@ findNode id root =
             |> Maybe.withDefault Nothing
 
 
+{-| Find nodes in a tree, by its id
+-}
 findNodes : List Int -> Node -> List (Maybe Node)
 findNodes ids root =
     ids |> List.map (\id -> findNode id root)
 
 
+{-| Retrieve the parent of a given node in a tree, by its id
+-}
 getParent : Int -> Node -> Maybe Node
 getParent id root =
     root
@@ -179,11 +234,15 @@ getParent id root =
             Nothing
 
 
+{-| Helper to retrieve a `NodeInfo` property from a node
+-}
 getProp : (NodeInfo -> a) -> Node -> a
 getProp getter (Node info) =
     getter info
 
 
+{-| Retrieve a node siblings identified by its id in a tree
+-}
 getSiblings : Int -> Node -> List Node
 getSiblings id node =
     case getParent id node of
@@ -195,6 +254,8 @@ getSiblings id node =
             []
 
 
+{-| Checks whether a node has the minimum quantity configured in the `Settings`
+-}
 isUnderfed : Int -> Node -> Bool
 isUnderfed min (Node root) =
     if root.qty < min then
@@ -223,6 +284,8 @@ maxId nodes =
         |> Maybe.withDefault 1
 
 
+{-| Normalize a tree, ensuring all leaves have a minimum quantity assigned
+-}
 normalize : Int -> Node -> Node
 normalize min ((Node nodeInfo) as node) =
     if isUnderfed min node then
@@ -239,6 +302,15 @@ normalize min ((Node nodeInfo) as node) =
         node
 
 
+{-| Spread shares across a list of nodes
+-}
+spreadShare : Int -> List Node -> List Node
+spreadShare total nodes =
+    nodes |> List.map (\(Node ni) -> Node { ni | share = total // List.length nodes })
+
+
+{-| Updates a node in a tree
+-}
 updateNode : Int -> Node -> Node -> Node
 updateNode id node (Node root) =
     if root.id == id then
@@ -252,11 +324,8 @@ updateNode id node (Node root) =
             }
 
 
-spreadShare : Int -> List Node -> List Node
-spreadShare total nodes =
-    nodes |> List.map (\(Node ni) -> Node { ni | share = total // List.length nodes })
-
-
+{-| Update a node label in a tree
+-}
 updateLabel : Int -> String -> Node -> Node
 updateLabel id label (Node root) =
     if root.id == id then
@@ -270,6 +339,8 @@ updateLabel id label (Node root) =
             }
 
 
+{-| Update a node share in a tree
+-}
 updateShare : Int -> Int -> Node -> Node
 updateShare id share (Node root) =
     if root.id == id then
@@ -287,6 +358,8 @@ updateShare id share (Node root) =
 -- Demo fixtures
 
 
+{-| An empty node
+-}
 empty : Node
 empty =
     Node
@@ -298,6 +371,8 @@ empty =
         }
 
 
+{-| A sample tree, for demo purpose
+-}
 demoTree : Node
 demoTree =
     Node

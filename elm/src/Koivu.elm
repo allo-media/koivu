@@ -7,7 +7,7 @@ module Koivu
         , setup
         )
 
-{-| An interactive tree representation of [AllMedia](https://www.allo-media.fr/)'s Customer Path.
+{-| An interactive tree representation of [AlloMedia](https://www.allo-media.fr/)'s Customer Path.
 
 
 # Minimal application setup
