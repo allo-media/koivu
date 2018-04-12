@@ -56,7 +56,8 @@ type alias NodeInfo =
 
 
 type alias Settings =
-    { globalQty : Int
+    { autoNormalize : Bool
+    , globalQty : Int
     , maxChildren : Int
     , maxGlobalQty : Int
     , maxLevels : Int

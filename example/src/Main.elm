@@ -7,7 +7,8 @@ import Html exposing (Html)
 
 settings : Settings
 settings =
-    { globalQty = 100000
+    { autoNormalize = False
+    , globalQty = 100000
     , minNodeQty = 3000
     , maxChildren = 4
     , maxGlobalQty = 200000

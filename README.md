@@ -29,5 +29,5 @@ Then head to [localhost:3000](http://localhost:3000).
 
 MIT
 
-[elm package]: http://xxx
+[Elm package]: http://xxx
 [npm package]: http://xxx

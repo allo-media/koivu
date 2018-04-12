@@ -58,20 +58,19 @@ init settings =
     { root = Tree.demoTree |> Tree.distributeQty settings.globalQty
     , editedNode = Nothing
     , qty = settings.globalQty
-    , autoNormalize = False
+    , autoNormalize = settings.autoNormalize
     }
         ! []
 
 
-distributeAndNormalize : Settings -> Bool -> Int -> Node -> Node
-distributeAndNormalize settings autoNormalize qty root =
+distributeAndNormalize : Settings -> Int -> Node -> Node
+distributeAndNormalize settings qty root =
     root
         |> Tree.distributeQty qty
-        |> (if autoNormalize then
-                Tree.normalize settings.minNodeQty
-            else
-                identity
-           )
+        |> if settings.autoNormalize then
+            Tree.normalize settings.minNodeQty
+           else
+            identity
 
 
 {-| Update
@@ -92,7 +91,7 @@ update settings msg ({ autoNormalize, qty } as model) =
                         | root =
                             model.root
                                 |> Tree.appendChild id newNode
-                                |> distributeAndNormalize settings autoNormalize qty
+                                |> distributeAndNormalize settings qty
                     }
             in
                 newModel |> update settings (EditNode nodeInfo.id)
@@ -109,7 +108,7 @@ update settings msg ({ autoNormalize, qty } as model) =
                 , root =
                     model.root
                         |> Tree.deleteNode id
-                        |> distributeAndNormalize settings autoNormalize qty
+                        |> distributeAndNormalize settings qty
             }
                 ! []
 
@@ -145,7 +144,7 @@ update settings msg ({ autoNormalize, qty } as model) =
         UpdateQty qty ->
             { model
                 | qty = qty
-                , root = model.root |> distributeAndNormalize settings autoNormalize qty
+                , root = model.root |> distributeAndNormalize settings qty
             }
                 ! []
 
@@ -154,7 +153,7 @@ update settings msg ({ autoNormalize, qty } as model) =
                 | root =
                     model.root
                         |> Tree.distributeShare id share
-                        |> distributeAndNormalize settings autoNormalize qty
+                        |> distributeAndNormalize settings qty
             }
                 ! []
 
@@ -213,7 +212,11 @@ view settings model =
             , updateLabel = UpdateLabel
             , updateGlobalQty = UpdateQty
             , updateShare = UpdateShare
-            , settings = { settings | globalQty = model.qty }
+            , settings =
+                { settings
+                    | autoNormalize = model.autoNormalize
+                    , globalQty = model.qty
+                }
             }
     in
         div [ class "koivu" ]
