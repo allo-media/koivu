@@ -1,0 +1,12 @@
+{
+  "name": "koivu-styles",
+  "version": "1.0.0",
+  "description": "Styles for Koivu",
+  "author": "Allo-Media",
+  "license": "MIT",
+  "dependencies": {
+    "bulma": "^0.6.2",
+    "bulma-checkradio": "^1.0.1",
+    "bulma-slider": "^1.0.4"
+  }
+}

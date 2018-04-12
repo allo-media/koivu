@@ -1,0 +1,60 @@
+version: 2
+jobs:
+  test:
+    docker:
+      - image: circleci/node:7
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+          - deps-{{ checksum "elm/package.json" }}
+          - deps-
+
+      - run:
+          name: Set PATH
+          command: echo 'export PATH=./node_modules/.bin:$PATH' >> $BASH_ENV
+
+      - run:
+          name: Install dependencies
+          working_directory: elm
+          command: |
+            npm install
+
+      - run:
+          name: Make build faster!
+          command: |
+            if [ ! -d sysconfcpus/bin ];
+            then
+              git clone https://github.com/obmarg/libsysconfcpus.git;
+              cd libsysconfcpus;
+              ./configure --prefix=/tmp/sysconfcpus;
+              make && make install;
+              cd ..;
+            fi
+
+      - save_cache:
+          paths:
+            - client/node_modules
+          key: deps-{{ checksum "elm/package.json" }}
+
+      - run:
+          name: Run static code analysis
+          working_directory: elm
+          command: |
+            elm-analyse
+
+      - run:
+          name: Run tests
+          working_directory: elm
+          command: |
+            mkdir -p test-reports
+            /tmp/sysconfcpus/bin/sysconfcpus -n 2 npm test
+
+      - store_artifacts:
+          path: client/test-reports/
+          destination: tr1
+
+      - store_test_results:
+          path: client/test-reports/

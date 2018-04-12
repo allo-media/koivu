@@ -1,0 +1,17 @@
+{
+  "name": "koivu-elm",
+  "version": "0.0.1",
+  "description": "Commands for the koivu Elm package",
+  "private": true,
+  "scripts": {
+    "install": "elm package install -y",
+    "test": "elm-test"
+  },
+  "author": "Allo-Media",
+  "license": "MIT",
+  "devDependencies": {
+    "elm": "^0.18.0",
+    "elm-format": "^0.6.1-alpha",
+    "elm-test": "^0.18.12"
+  }
+}

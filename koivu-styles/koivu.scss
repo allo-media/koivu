@@ -1,0 +1,183 @@
+// Variables
+$leaf-color: #24b6c5;
+$trunk-color: #fff;
+$underfed-color: #ffb101;
+$grey-color: rgba(0,0,0,0.1);
+
+// Styles
+.koivu {
+  .koivu-tree {
+    text-align: center;
+
+    .line-path {
+      stroke: $grey-color;
+      stroke-width: 3px;
+    }
+
+    .node {
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(3, 1fr);
+      width: 135px;
+      height: 80px;
+      padding: 3px;
+      border-radius: 6px;
+
+      background-color: white;
+      border: 3px solid rgba(0,0,0,0.1);
+
+      .label {
+        width: 123px;
+        font-weight: normal;
+      }
+
+
+      &.leaf, &.underfed, &.trunk {
+
+        .actions {
+
+          display: grid;
+          grid-template-rows: auto;
+          grid-template-columns: 12px 1fr 12px;
+          max-width: 123px;
+
+          button {
+            padding: 0;
+            margin: 0;
+            background-color: transparent;
+            border: none;
+            &:hover {
+              cursor: pointer;
+            }
+
+            &.btn-edit {
+              min-width: 0;
+              padding: 0px 1px;
+              font-size: .8rem;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              font-weight: bold;
+              cursor: text;
+
+            }
+
+            &.btn-append {
+              width: 12px;
+              font-size: 1.2rem;
+              font-weight: bold;
+            }
+
+            &.btn-delete {
+              width: 12px;
+              font-size: 1.2rem;
+              font-weight: bold;
+            }
+          }
+
+        }
+
+      }
+
+      &.leaf {
+        border: 3px solid $leaf-color;
+        color: $leaf-color;
+
+        .actions {
+          button {
+            color: $leaf-color;
+            background-color: transparent;
+
+            &:hover {
+              color: darken($leaf-color, 10);
+            }
+          }
+        }
+      }
+
+      &.underfed {
+        border: 3px solid $underfed-color;
+
+        color: $underfed-color;
+        .actions {
+          button {
+            color: $underfed-color;
+            background-color: transparent;
+            &:hover {
+              color: darken($underfed-color, 10);
+            }
+          }
+        }
+      }
+
+      &.trunk {
+        border: 3px solid $grey-color;
+        color: darken($grey-color, 70);
+        .actions {
+          button {
+            color: darken($grey-color, 30%);
+            background-color: transparent;
+
+            &.btn-edit {
+              color: rgba(0,0,0,0.7);
+            }
+
+            &.btn-append {
+              color:  $grey-color;
+            }
+
+            &.btn-delete {
+              color:  $grey-color;
+            }
+          }
+        }
+      }
+
+      &.is-root {
+        .actions {
+          grid-template-columns: 1fr;
+        }
+      }
+
+
+      input[type=range] {
+        width: 100%;
+        margin: 5px 0;
+
+        &:active {
+          &::-webkit-slider-thumb {
+            -webkit-transform: none;
+            transform: none;
+          }
+        }
+      }
+
+      .share-info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto;
+        color: rgba(0,0,0,0.5);
+        font-size: 1.1rem;
+        font-weight: bold;
+      }
+
+      .percent {
+        text-align: center;
+        &::after {
+          content: "%"
+        }
+      }
+      .quantity {
+        text-align: center;
+      }
+    }
+  }
+
+  .normalize-form {
+    text-align: center;
+    label {
+      margin: 10px 0 0 10px;
+      color: #555;
+    }
+  }
+}
