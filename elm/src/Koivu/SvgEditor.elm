@@ -1,7 +1,8 @@
 module Koivu.SvgEditor exposing (view)
 
-import Koivu.Tree exposing (EditorConfig, Node(..), Settings)
+import Koivu.Tree exposing (EditorConfig, Node(..))
 import Koivu.NodeHtml as NodeHtml
+import Koivu.Settings exposing (Settings)
 import Svg exposing (Svg)
 import Svg.Attributes exposing (..)
 import TreeDiagram exposing (Tree, TreeLayout)

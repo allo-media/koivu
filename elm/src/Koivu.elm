@@ -11,6 +11,11 @@ module Koivu
 
 # Minimal application setup
 
+    import Koivu
+    import Koivu.Tree as Tree
+    import Koivu.Settings exposing (Settings)
+    import Html
+
     settings : Settings
     settings =
         { autoNormalize = False
@@ -24,7 +29,7 @@ module Koivu
         , nodePadding = 10
         }
 
-    main : Program Never Model Msg
+    main : Program Never Koivu.Model Koivu.Msg
     main =
         Tree.demoTree
             |> Koivu.setup settings
@@ -33,11 +38,12 @@ module Koivu
 
 # Documentation
 
-@docs Program, Model, Msg, setup
+@docs Program, setup, Model, Msg
 
 -}
 
-import Koivu.Tree as Tree exposing (Node(..), Settings)
+import Koivu.Tree as Tree exposing (Node(..))
+import Koivu.Settings exposing (Settings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -45,7 +51,7 @@ import Keyboard exposing (KeyCode)
 import Koivu.SvgEditor as SvgEditor
 
 
-{-| Main model
+{-| Koivu main model
 -}
 type alias Model =
     { root : Node
@@ -54,7 +60,7 @@ type alias Model =
     }
 
 
-{-| Messages
+{-| Koivu messages
 -}
 type Msg
     = AppendChild Int
@@ -70,7 +76,7 @@ type Msg
     | UpdateShare Int Int
 
 
-{-| A Koivu program.
+{-| A Koivu program
 -}
 type alias Program =
     { init : ( Model, Cmd Msg )

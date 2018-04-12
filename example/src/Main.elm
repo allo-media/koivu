@@ -1,7 +1,8 @@
 module Main exposing (..)
 
-import Koivu exposing (Model, Msg, setup)
-import Koivu.Tree as Tree exposing (Node(..), Settings)
+import Koivu
+import Koivu.Tree as Tree
+import Koivu.Settings exposing (Settings)
 import Html
 
 
@@ -19,7 +20,7 @@ settings =
     }
 
 
-main : Program Never Model Msg
+main : Program Never Koivu.Model Koivu.Msg
 main =
     Tree.demoTree
         |> Koivu.setup settings

@@ -3,7 +3,6 @@ module Koivu.Tree
         ( EditorConfig
         , Node(..)
         , NodeInfo
-        , Settings
         , allowExpand
         , appendChild
         , createNode
@@ -26,11 +25,12 @@ module Koivu.Tree
 
 {-| A representation of a Classification Tree.
 
-@docs EditorConfig, Node, NodeInfo, Settings, allowExpand, appendChild, createNode, deleteNode, distributeShare, distributeQty, demoTree, emptyTree, encode, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed, normalize, updateLabel, updateShare
+@docs EditorConfig, Node, NodeInfo, allowExpand, appendChild, createNode, deleteNode, distributeShare, distributeQty, demoTree, emptyTree, encode, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed, normalize, updateLabel, updateShare
 
 -}
 
 import Json.Encode as Encode
+import Koivu.Settings exposing (Settings)
 
 
 type alias EditorConfig msg =
@@ -58,19 +58,6 @@ type alias NodeInfo =
     , qty : Int
     , share : Int
     , children : List Node
-    }
-
-
-type alias Settings =
-    { autoNormalize : Bool
-    , globalQty : Int
-    , maxChildren : Int
-    , maxGlobalQty : Int
-    , maxLevels : Int
-    , minNodeQty : Int
-    , nodeWidth : Int
-    , nodeHeight : Int
-    , nodePadding : Int
     }
 
 
