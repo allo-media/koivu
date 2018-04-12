@@ -9,7 +9,7 @@ jobs:
 
       - restore_cache:
           keys:
-          - deps-{{ checksum "elm/package.json" }}
+          - deps-{{ checksum "package.json" }}
           - deps-
 
       - run:
@@ -18,7 +18,7 @@ jobs:
 
       - run:
           name: Install dependencies
-          working_directory: elm
+          working_directory: .
           command: |
             npm install
 
@@ -36,28 +36,28 @@ jobs:
 
       - save_cache:
           paths:
-            - elm/node_modules
-          key: deps-{{ checksum "elm/package.json" }}
+            - node_modules
+          key: deps-{{ checksum "package.json" }}
 
       - run:
           name: Run static code analysis
-          working_directory: elm
+          working_directory: .
           command: |
             elm-analyse
 
       - run:
           name: Run tests
-          working_directory: elm
+          working_directory: .
           command: |
             mkdir -p test-reports
             /tmp/sysconfcpus/bin/sysconfcpus -n 2 npm test
 
       - store_artifacts:
-          path: elm/test-reports/
+          path: test-reports/
           destination: tr1
 
       - store_test_results:
-          path: elm/test-reports/
+          path: test-reports/
 
 workflows:
   version: 2

@@ -1,7 +1,7 @@
 {
   "name": "koivu-elm",
-  "version": "0.0.1",
-  "description": "Commands for the koivu Elm package",
+  "version": "1.0.0",
+  "description": "Commands for the koivu Elm package; do not publish!",
   "private": true,
   "scripts": {
     "install": "elm package install -y",

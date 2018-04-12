@@ -5,7 +5,7 @@
     "license": "MIT",
     "source-directories": [
         "src",
-        "../elm/src"
+        "../src"
     ],
     "exposed-modules": [],
     "dependencies": {
