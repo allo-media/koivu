@@ -139,6 +139,11 @@ $grey-color: rgba(0,0,0,0.1);
         }
       }
 
+      &.is-root.can-add-child {
+        .actions {
+          grid-template-columns: 1fr 12px;
+        }
+      }
 
       input[type=range] {
         width: 100%;

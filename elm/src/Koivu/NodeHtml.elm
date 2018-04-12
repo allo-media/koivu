@@ -31,8 +31,8 @@ labelForm config (Node nodeInfo) =
         ]
 
 
-nodeClasses : EditorConfig msg -> Node -> Attribute msg
-nodeClasses { root, settings } ((Node { children, qty }) as node) =
+nodeClasses : EditorConfig msg -> Int -> Node -> Attribute msg
+nodeClasses { root, settings } level ((Node { children, qty }) as node) =
     let
         stateClass =
             if List.length children > 0 then
@@ -46,6 +46,8 @@ nodeClasses { root, settings } ((Node { children, qty }) as node) =
             [ ( "node", True )
             , ( stateClass, True )
             , ( "is-root", root == node )
+            , ( "has-children", List.length children > 0 )
+            , ( "can-add-child", Tree.allowExpand settings level children )
             ]
 
 
@@ -135,7 +137,7 @@ view ({ editNode, editedNode } as config) level node =
             node
     in
         div
-            [ nodeClasses config node ]
+            [ nodeClasses config level node ]
             [ -- editable label
               if maybeIs editedNode nodeInfo.id then
                 labelForm config node

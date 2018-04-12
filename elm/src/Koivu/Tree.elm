@@ -11,8 +11,8 @@ module Koivu.Tree
         , distributeShare
         , distributeQty
         , demoTree
-        , emptyTree
-        , encodeNode
+        , empty
+        , encode
         , findNode
         , findNodes
         , getParent
@@ -23,6 +23,12 @@ module Koivu.Tree
         , updateLabel
         , updateShare
         )
+
+{-| A representation of a Classification Tree.
+
+@docs EditorConfig, Node, NodeInfo, Settings, allowExpand, appendChild, createNode, deleteNode, distributeShare, distributeQty, demoTree, emptyTree, encode, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed, normalize, updateLabel, updateShare
+
+-}
 
 import Json.Encode as Encode
 
@@ -35,10 +41,10 @@ type alias EditorConfig msg =
     , editNode : Int -> msg
     , editedNode : Maybe Int
     , root : Node
+    , settings : Settings
     , updateGlobalQty : Int -> msg
     , updateLabel : Int -> String -> msg
     , updateShare : Int -> Int -> msg
-    , settings : Settings
     }
 
 
@@ -72,11 +78,11 @@ type alias Settings =
 -- Encoders
 
 
-encodeNode : Node -> Encode.Value
-encodeNode (Node nodeInfo) =
+encode : Node -> Encode.Value
+encode (Node nodeInfo) =
     Encode.object
         [ ( "label", Encode.string nodeInfo.label )
-        , ( "children", nodeInfo.children |> List.map encodeNode |> Encode.list )
+        , ( "children", nodeInfo.children |> List.map encode |> Encode.list )
         ]
 
 
@@ -310,8 +316,8 @@ updateShare id share (Node root) =
 -- Demo fixtures
 
 
-emptyTree : Node
-emptyTree =
+empty : Node
+empty =
     Node
         { id = 1
         , label = "Source"

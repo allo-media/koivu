@@ -2,18 +2,42 @@ module Koivu
     exposing
         ( Model
         , Msg(..)
-        , init
-        , update
-        , subscriptions
-        , view
+        , Program
+        , setup
         )
 
 {-| An interactive tree representation of [AllMedia](https://www.allo-media.fr/)'s Customer Path.
 
 
-# Configure the tree
+# Minimal application setup
 
-@docs Model, Msg, init, subscriptions, update, view
+    import Koivu exposing (Model, Msg, setup)
+    import Koivu.Tree as Tree exposing (Node(..), Settings)
+    import Html
+
+    settings : Settings
+    settings =
+        { autoNormalize = False
+        , globalQty = 100000
+        , minNodeQty = 3000
+        , maxChildren = 4
+        , maxGlobalQty = 200000
+        , maxLevels = 3
+        , nodeWidth = 140
+        , nodeHeight = 80
+        , nodePadding = 10
+        }
+
+    main : Program Never Model Msg
+    main =
+        Tree.empty
+            |> Koivu.setup settings
+            |> Html.program
+
+
+# Documentation
+
+@docs Program, Model, Msg, setup
 
 -}
 
@@ -51,11 +75,30 @@ type Msg
     | UpdateShare Int Int
 
 
-{-| Init
+{-| A Koivu program.
 -}
-init : Settings -> ( Model, Cmd Msg )
-init settings =
-    { root = Tree.demoTree |> Tree.distributeQty settings.globalQty
+type alias Program =
+    { init : ( Model, Cmd Msg )
+    , subscriptions : Model -> Sub Msg
+    , update : Msg -> Model -> ( Model, Cmd Msg )
+    , view : Model -> Html Msg
+    }
+
+
+{-| Setup a Koivu program.
+-}
+setup : Settings -> Node -> Program
+setup settings root =
+    { init = init settings root
+    , subscriptions = subscriptions settings
+    , update = update settings
+    , view = view settings
+    }
+
+
+init : Settings -> Node -> ( Model, Cmd Msg )
+init settings root =
+    { root = root |> Tree.distributeQty settings.globalQty
     , editedNode = Nothing
     , qty = settings.globalQty
     , autoNormalize = settings.autoNormalize
@@ -73,8 +116,6 @@ distributeAndNormalize settings qty root =
             identity
 
 
-{-| Update
--}
 update : Settings -> Msg -> Model -> ( Model, Cmd Msg )
 update settings msg ({ autoNormalize, qty } as model) =
     case msg of
@@ -162,8 +203,6 @@ update settings msg ({ autoNormalize, qty } as model) =
 -- Subscriptions
 
 
-{-| Subscriptions
--}
 subscriptions : Settings -> Model -> Sub Msg
 subscriptions _ _ =
     -- FIXME: this triggers many updates for no reason, couldn't filter Esc
@@ -196,8 +235,6 @@ formView settings model =
         ]
 
 
-{-| View
--}
 view : Settings -> Model -> Html Msg
 view settings model =
     let
@@ -220,6 +257,7 @@ view settings model =
             }
     in
         div [ class "koivu" ]
-            [ div [ class "koivu-tree" ] [ SvgEditor.view editorConfig model.root ]
+            [ div [ class "koivu-tree" ]
+                [ SvgEditor.view editorConfig model.root ]
             , formView settings model
             ]
