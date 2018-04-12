@@ -1,6 +1,7 @@
-module Koivu.NodeHtml exposing (view)
+module Koivu.Internal.NodeHtml exposing (view)
 
-import Koivu.Tree as Tree exposing (EditorConfig, Node(..))
+import Koivu.Internal.EditorConfig exposing (EditorConfig)
+import Koivu.Tree as Tree exposing (Node(..))
 import Html exposing (..)
 import Html.Attributes as Attr exposing (..)
 import Html.Events exposing (..)

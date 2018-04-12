@@ -1,7 +1,6 @@
 module Koivu.Tree
     exposing
-        ( EditorConfig
-        , Node(..)
+        ( Node(..)
         , NodeInfo
         , allowExpand
         , appendChild
@@ -25,27 +24,12 @@ module Koivu.Tree
 
 {-| A representation of a Classification Tree.
 
-@docs EditorConfig, Node, NodeInfo, allowExpand, appendChild, createNode, deleteNode, distributeShare, distributeQty, demoTree, emptyTree, encode, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed, normalize, updateLabel, updateShare
+@docs Node, NodeInfo, allowExpand, appendChild, createNode, deleteNode, distributeShare, distributeQty, demoTree, emptyTree, encode, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed, normalize, updateLabel, updateShare
 
 -}
 
 import Json.Encode as Encode
-import Koivu.Settings exposing (Settings)
-
-
-type alias EditorConfig msg =
-    { appendNode : Int -> msg
-    , cancelEdit : msg
-    , commitLabel : msg
-    , deleteNode : Int -> msg
-    , editNode : Int -> msg
-    , editedNode : Maybe Int
-    , root : Node
-    , settings : Settings
-    , updateGlobalQty : Int -> msg
-    , updateLabel : Int -> String -> msg
-    , updateShare : Int -> Int -> msg
-    }
+import Koivu.Internal.Settings exposing (Settings)
 
 
 type Node

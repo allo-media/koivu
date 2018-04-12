@@ -3,6 +3,7 @@ module Koivu
         ( Model
         , Msg
         , Program
+        , Settings
         , setup
         )
 
@@ -13,10 +14,9 @@ module Koivu
 
     import Koivu
     import Koivu.Tree as Tree
-    import Koivu.Settings exposing (Settings)
     import Html
 
-    settings : Settings
+    settings : Koivu.Settings
     settings =
         { autoNormalize = False
         , globalQty = 100000
@@ -38,17 +38,17 @@ module Koivu
 
 # Documentation
 
-@docs Program, setup, Model, Msg
+@docs Settings, setup, Program, Model, Msg
 
 -}
 
+import Koivu.Internal.Settings
+import Koivu.Internal.SvgEditor as SvgEditor
 import Koivu.Tree as Tree exposing (Node(..))
-import Koivu.Settings exposing (Settings)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Keyboard exposing (KeyCode)
-import Koivu.SvgEditor as SvgEditor
 
 
 {-| Koivu main model
@@ -84,6 +84,23 @@ type alias Program =
     , update : Msg -> Model -> ( Model, Cmd Msg )
     , view : Model -> Html Msg
     }
+
+
+{-| Koivu settings.
+
+  - `autoNormalize`: enable auto-normalization of the tree
+  - `globalQty`: initial global available quantity
+  - `minNodeQty`: minimal quantity for a viable tree
+  - `maxChildren`: maximum number of children per node
+  - `maxGlobalQty`: maximum global available quantity
+  - `maxLevels`: maximum depth for the tree
+  - `nodeWidth`: node width, in pixels
+  - `nodeHeight`: node height, in pixels
+  - `nodePadding`: node padding, in pixels
+
+-}
+type alias Settings =
+    Koivu.Internal.Settings.Settings
 
 
 {-| Setup a Koivu program.
