@@ -42,6 +42,7 @@ module Koivu
 
 -}
 
+import Dom
 import Koivu.Internal.SvgEditor as SvgEditor
 import Koivu.Settings exposing (Settings)
 import Koivu.Tree as Tree exposing (Node(..))
@@ -49,6 +50,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Keyboard exposing (KeyCode)
+import Task
 
 
 {-| Koivu main model
@@ -69,6 +71,7 @@ type Msg
     | DeleteNode Int
     | EditNode Int
     | KeyUp KeyCode
+    | NoOp
     | Normalize
     | SetAutoNormalize Bool
     | UpdateLabel Int String
@@ -124,9 +127,6 @@ update msg ({ settings } as model) =
                 newNode =
                     Tree.createNode model.root
 
-                (Node nodeInfo) =
-                    newNode
-
                 newModel =
                     { model
                         | root =
@@ -135,7 +135,7 @@ update msg ({ settings } as model) =
                                 |> distributeAndNormalize settings
                     }
             in
-                newModel |> update (EditNode nodeInfo.id)
+                newModel |> update (EditNode <| Tree.getProp .id newNode)
 
         CancelEdit ->
             { model | editedNode = Nothing } ! []
@@ -155,9 +155,13 @@ update msg ({ settings } as model) =
 
         EditNode id ->
             { model | editedNode = Just id }
-                -- FIXME: add a command to the config
-                -- ! [ Ports.select <| "node" ++ toString id ]
-                ! []
+                ! [ ("node" ++ toString id)
+                        |> Dom.focus
+                        |> Task.attempt (always NoOp)
+                  ]
+
+        NoOp ->
+            model ! []
 
         Normalize ->
             { model | root = model.root |> Tree.normalize settings.minNodeQty } ! []
