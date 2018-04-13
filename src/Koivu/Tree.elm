@@ -52,7 +52,7 @@ module Koivu.Tree
 -}
 
 import Json.Encode as Encode
-import Koivu.Internal.Settings exposing (Settings)
+import Koivu.Settings exposing (Settings)
 
 
 {-| A tree node

@@ -1,6 +1,6 @@
 module Koivu.Internal.EditorConfig exposing (EditorConfig)
 
-import Koivu.Internal.Settings exposing (Settings)
+import Koivu.Settings exposing (Settings)
 import Koivu.Tree exposing (Node)
 
 

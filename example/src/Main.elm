@@ -2,10 +2,11 @@ module Main exposing (..)
 
 import Koivu
 import Koivu.Tree as Tree
+import Koivu.Settings exposing (Settings)
 import Html
 
 
-settings : Koivu.Settings
+settings : Settings
 settings =
     { autoNormalize = False
     , globalQty = 100000

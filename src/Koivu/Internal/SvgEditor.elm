@@ -2,7 +2,7 @@ module Koivu.Internal.SvgEditor exposing (view)
 
 import Koivu.Internal.EditorConfig exposing (EditorConfig)
 import Koivu.Internal.NodeHtml as NodeHtml
-import Koivu.Internal.Settings exposing (Settings)
+import Koivu.Settings exposing (Settings)
 import Koivu.Tree exposing (Node(..))
 import Svg exposing (Svg)
 import Svg.Attributes exposing (..)
