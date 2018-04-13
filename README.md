@@ -21,9 +21,10 @@ module Main exposing (..)
 
 import Koivu
 import Koivu.Tree as Tree
+import Koivu.Settings exposing (Settings)
 import Html
 
-settings : Koivu.Settings
+settings : Settings
 settings =
     { autoNormalize = False
     , globalQty = 100000
@@ -42,6 +43,9 @@ main =
         |> Koivu.setup settings
         |> Html.program
 ```
+
+You'll find a more elaborate integration example in
+[the `example` subfolder](https://github.com/allo-media/koivu/tree/2.0.0/example).
 
 ## Running the demo locally
 

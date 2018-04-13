@@ -35,6 +35,8 @@ module Koivu
             |> Koivu.setup settings
             |> Html.program
 
+You'll find a more elaborate integration example [here](https://github.com/allo-media/koivu/tree/2.0.0/example).
+
 
 # Documentation
 
@@ -53,7 +55,7 @@ import Keyboard exposing (KeyCode)
 import Task
 
 
-{-| Koivu main model
+{-| Koivu main model.
 -}
 type alias Model =
     { root : Node
@@ -62,7 +64,7 @@ type alias Model =
     }
 
 
-{-| Koivu messages
+{-| Koivu messages.
 -}
 type Msg
     = AppendChild Int
@@ -79,7 +81,7 @@ type Msg
     | UpdateShare Int Int
 
 
-{-| A Koivu program
+{-| A Koivu program.
 -}
 type alias Program =
     { init : ( Model, Cmd Msg )
