@@ -18,6 +18,7 @@ module Koivu.Tree
         , getSiblings
         , isUnderfed
         , normalize
+        , toggleLock
         , updateLabel
         , updateShare
         )
@@ -32,7 +33,7 @@ module Koivu.Tree
 
 # Building a tree
 
-@docs empty, demoTree, appendChild, createNode, deleteNode, updateLabel, updateShare
+@docs empty, demoTree, appendChild, createNode, deleteNode, toggleLock, updateLabel, updateShare
 
 
 # Querying a tree
@@ -68,6 +69,7 @@ type alias NodeInfo =
     , label : String
     , qty : Int
     , share : Int
+    , locked : Bool
     , children : List Node
     }
 
@@ -133,6 +135,7 @@ createNode (Node root) =
             , label = "Node #" ++ toString id
             , qty = 0
             , share = 100 // List.length root.children + 1
+            , locked = False
             , children = []
             }
 
@@ -309,6 +312,21 @@ spreadShare total nodes =
     nodes |> List.map (\(Node ni) -> Node { ni | share = total // List.length nodes })
 
 
+{-| Toggles a locked status of a node.
+-}
+toggleLock : Int -> Node -> Node
+toggleLock id (Node root) =
+    if root.id == id then
+        Node { root | locked = not root.locked }
+    else
+        Node
+            { root
+                | children =
+                    root.children
+                        |> List.map (toggleLock id)
+            }
+
+
 {-| Updates a node in a tree.
 -}
 updateNode : Int -> Node -> Node -> Node
@@ -367,6 +385,7 @@ empty =
         , label = "Source"
         , qty = 0
         , share = 100
+        , locked = False
         , children = []
         }
 
@@ -380,18 +399,21 @@ demoTree =
         , label = "Source"
         , qty = 0
         , share = 100
+        , locked = False
         , children =
             [ Node
                 { id = 2
                 , label = "Avant-vente"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children =
                     [ Node
                         { id = 3
                         , label = "Lead converti"
                         , qty = 0
                         , share = 50
+                        , locked = False
                         , children = []
                         }
                     , Node
@@ -399,12 +421,14 @@ demoTree =
                         , label = "Non converti"
                         , qty = 0
                         , share = 50
+                        , locked = False
                         , children =
                             [ Node
                                 { id = 11
                                 , label = "Engagé"
                                 , qty = 0
                                 , share = 50
+                                , locked = False
                                 , children = []
                                 }
                             , Node
@@ -412,6 +436,7 @@ demoTree =
                                 , label = "Froid"
                                 , qty = 0
                                 , share = 50
+                                , locked = False
                                 , children = []
                                 }
                             ]
@@ -423,12 +448,14 @@ demoTree =
                 , label = "Après vente"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children =
                     [ Node
                         { id = 5
                         , label = "Pas d'insatisfaction"
                         , qty = 0
                         , share = 34
+                        , locked = False
                         , children = []
                         }
                     , Node
@@ -436,6 +463,7 @@ demoTree =
                         , label = "Insatisfaction"
                         , qty = 0
                         , share = 33
+                        , locked = False
                         , children = []
                         }
                     , Node
@@ -443,6 +471,7 @@ demoTree =
                         , label = "Risque d'attrition"
                         , qty = 0
                         , share = 33
+                        , locked = False
                         , children = []
                         }
                     ]
@@ -452,6 +481,7 @@ demoTree =
                 , label = "Autre demande"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children = []
                 }
             , Node
@@ -459,6 +489,7 @@ demoTree =
                 , label = "Aucune action"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children = []
                 }
             ]

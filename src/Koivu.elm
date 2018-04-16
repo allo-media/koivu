@@ -76,6 +76,7 @@ type Msg
     | NoOp
     | Normalize
     | SetAutoNormalize Bool
+    | ToggleLock Int
     | UpdateLabel Int String
     | UpdateQty Int
     | UpdateShare Int Int
@@ -185,6 +186,13 @@ update msg ({ settings } as model) =
             }
                 ! []
 
+        ToggleLock id ->
+            { model
+                | editedNode = Nothing
+                , root = model.root |> Tree.toggleLock id
+            }
+                ! []
+
         UpdateLabel id label ->
             { model | root = model.root |> Tree.updateLabel id label } ! []
 
@@ -252,6 +260,7 @@ view model =
             , editNode = EditNode
             , editedNode = model.editedNode
             , root = model.root
+            , toggleLock = ToggleLock
             , updateLabel = UpdateLabel
             , updateGlobalQty = UpdateQty
             , updateShare = UpdateShare
