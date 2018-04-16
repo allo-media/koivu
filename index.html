@@ -10,6 +10,15 @@
   <script src="app.js"></script>
   <script>
     const app = Elm.Main.fullscreen();
+    app.ports.select.subscribe((id) => {
+      requestAnimationFrame(() => {
+        try {
+          document.getElementById(id).select();
+        } catch (err) {
+          console.warn("Counldn't select element with id=" + id)
+        }
+      });
+    });
   </script>
 </body>
 </html>
