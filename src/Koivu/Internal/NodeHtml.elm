@@ -97,16 +97,21 @@ rangeForm config node =
 
         onlyChild =
             (config.root |> Tree.getSiblings nodeInfo.id |> List.length) == 0
+
+        sharableMax =
+            Tree.getMaxSharable nodeInfo.id config.root
     in
         if not isRoot && onlyChild then
             text ""
         else if isRoot then
             rangeInput minNodeQty maxGlobalQty globalQty False config.updateGlobalQty
-        else
+        else if Tree.isLockable nodeInfo.id config.root then
             div [ class "with-lock" ]
                 [ a [ onClick <| config.toggleLock nodeInfo.id ] [ lockIcon nodeInfo.locked ]
-                , rangeInput 1 100 nodeInfo.share nodeInfo.locked (config.updateShare nodeInfo.id)
+                , rangeInput 1 sharableMax nodeInfo.share nodeInfo.locked (config.updateShare nodeInfo.id)
                 ]
+        else
+            rangeInput 1 sharableMax nodeInfo.share False (config.updateShare nodeInfo.id)
 
 
 shareInfo : Int -> Int -> Html msg

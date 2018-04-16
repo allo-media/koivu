@@ -6,16 +6,18 @@ module Koivu.Tree
         , appendChild
         , createNode
         , deleteNode
-        , distributeShare
         , distributeQty
+        , distributeShare
         , demoTree
         , empty
         , encode
         , findNode
         , findNodes
+        , getMaxSharable
         , getParent
         , getProp
         , getSiblings
+        , isLockable
         , isUnderfed
         , normalize
         , toggleLock
@@ -38,7 +40,7 @@ module Koivu.Tree
 
 # Querying a tree
 
-@docs allowExpand, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed
+@docs allowExpand, findNode, findNodes, getMaxSharable, getParent, getProp, getSiblings, isLockable, isUnderfed
 
 
 # Normalizing a tree
@@ -173,7 +175,7 @@ distributeQty qty (Node node) =
             }
 
 
-{-| Distributes shares to a given node siblings in a tree.
+{-| Distributes shares to a given node siblings in a tree, provided one isn't locked.
 -}
 distributeShare : Int -> Int -> Node -> Node
 distributeShare id share node =
@@ -181,8 +183,19 @@ distributeShare id share node =
         siblings =
             node |> getSiblings id
 
+        ( totalShare, nbSiblings, excludeLocked ) =
+            case List.filter (getProp .locked) siblings of
+                [ Node locked ] ->
+                    ( 100 - locked.share
+                    , List.length siblings - 1
+                    , \(Node { id }) -> id /= locked.id
+                    )
+
+                _ ->
+                    ( 100, List.length siblings, always True )
+
         toDistribute =
-            case (100 - share) // List.length siblings of
+            case (totalShare - share) // nbSiblings of
                 0 ->
                     1
 
@@ -190,8 +203,12 @@ distributeShare id share node =
                     n
     in
         siblings
+            |> List.filter excludeLocked
             |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) node
-            |> updateShare id share
+            |> if share + (nbSiblings * toDistribute) > 100 then
+                identity
+               else
+                updateShare id share
 
 
 {-| Find a node in a tree, by its id.
@@ -214,6 +231,24 @@ findNode id root =
 findNodes : List Int -> Node -> List (Maybe Node)
 findNodes ids root =
     ids |> List.map (\id -> findNode id root)
+
+
+{-| Get maximum share a node can reach.
+-}
+getMaxSharable : Int -> Node -> Int
+getMaxSharable id node =
+    -- Note: a node share can't be < 1, that's why we compute this maximum with
+    -- all siblings having a minimum share of 1
+    let
+        siblings =
+            node |> getSiblings id
+    in
+        case List.filter (getProp .locked) siblings of
+            [ Node locked ] ->
+                (100 - locked.share) - (List.length siblings - 1)
+
+            _ ->
+                100 - List.length siblings
 
 
 {-| Retrieve the parent of a given node in a tree, by its id.
@@ -257,7 +292,8 @@ getSiblings id node =
             []
 
 
-{-| Checks whether a node has the minimum quantity configured in the `Settings`.
+{-| Checks whether a tree has all its nodes having the minimum quantity configured
+in the `Settings`.
 -}
 isUnderfed : Int -> Node -> Bool
 isUnderfed min (Node root) =
@@ -267,6 +303,24 @@ isUnderfed min (Node root) =
         root.children
             |> List.filter (isUnderfed min)
             |> (\underfed -> List.length underfed > 0)
+
+
+{-| Check whether a node can be locked or not. A node can be locked if:
+
+  - it has more than one sibling
+  - and none of its sibling are already locked
+
+-}
+isLockable : Int -> Node -> Bool
+isLockable id root =
+    let
+        siblings =
+            getSiblings id root
+
+        noSiblingLocked =
+            List.all (getProp (not << .locked)) siblings
+    in
+        List.length siblings > 1 && noSiblingLocked
 
 
 maxId : List Node -> Int
@@ -293,12 +347,12 @@ normalize : Int -> Node -> Node
 normalize min ((Node nodeInfo) as node) =
     if isUnderfed min node then
         let
-            newQty =
+            increasedQty =
                 nodeInfo.qty + 1000
 
             increased =
-                Node { nodeInfo | qty = newQty }
-                    |> distributeQty newQty
+                Node { nodeInfo | qty = increasedQty }
+                    |> distributeQty increasedQty
         in
             normalize min increased
     else
@@ -358,11 +412,21 @@ updateLabel id label (Node root) =
 
 
 {-| Update a node share in a tree.
+
+Note: if share is < 1, it will be forced to 1.
+
 -}
 updateShare : Int -> Int -> Node -> Node
 updateShare id share (Node root) =
     if root.id == id then
-        Node { root | share = share }
+        Node
+            { root
+                | share =
+                    if share > 0 then
+                        share
+                    else
+                        1
+            }
     else
         Node
             { root
