@@ -205,10 +205,7 @@ distributeShare id share node =
         siblings
             |> List.filter excludeLocked
             |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) node
-            |> if share + (nbSiblings * toDistribute) > 100 then
-                identity
-               else
-                updateShare id share
+            |> updateShare id share
 
 
 {-| Find a node in a tree, by its id.
