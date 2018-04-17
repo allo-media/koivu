@@ -372,7 +372,9 @@ spreadShare total nodes =
     nodes |> List.map (\(Node ni) -> Node { ni | share = total // List.length nodes })
 
 
-{-| Toggles a locked status of a node.
+{-| Toggles a locked status of a node. Locking a node means its share value is
+locked and can't be modified, so distribution is guaranteed across its siblings
+only.
 -}
 toggleLock : Int -> Node -> Node
 toggleLock id (Node root) =
