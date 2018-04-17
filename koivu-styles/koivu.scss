@@ -17,7 +17,7 @@ $grey-color: rgba(0,0,0,0.1);
     .node {
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: repeat(3, 1fr);
+      grid-template-rows: 20px 1fr 24px;
       width: 135px;
       height: 80px;
       padding: 3px;
@@ -82,8 +82,7 @@ $grey-color: rgba(0,0,0,0.1);
       .with-lock {
         display: grid;
         grid-template-columns: 20px 1fr;
-        >a {
-          margin-top: -6px;
+        a {
           color: #777;
         }
       }
@@ -157,6 +156,7 @@ $grey-color: rgba(0,0,0,0.1);
       input[type=range] {
         width: 100%;
         margin: 5px 0;
+        height: 14px;
 
         &:active {
           &::-webkit-slider-thumb {
@@ -166,9 +166,9 @@ $grey-color: rgba(0,0,0,0.1);
         }
         &:disabled {
           position: fixed;
-          top: 56px;
           left: 26px;
           width: 103px;
+
           &::-webkit-slider-thumb {
             -webkit-transform: none;
             transform: none;
