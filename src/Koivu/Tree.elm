@@ -175,13 +175,17 @@ distributeQty qty (Node node) =
             }
 
 
-{-| Distributes shares to a given node siblings in a tree, provided one isn't locked.
+{-| Distributes shares to a given node siblings in a tree, dealing with a
+possibly locked sibling.
+
+If the target node itself is locked, this function is a noop.
+
 -}
 distributeShare : Int -> Int -> Node -> Node
-distributeShare id share node =
+distributeShare id share root =
     let
         siblings =
-            node |> getSiblings id
+            root |> getSiblings id
 
         ( totalShare, nbSiblings, excludeLocked ) =
             case List.filter (getProp .locked) siblings of
@@ -202,10 +206,15 @@ distributeShare id share node =
                 n ->
                     n
     in
-        siblings
-            |> List.filter excludeLocked
-            |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) node
-            |> updateShare id share
+        case root |> findNode id |> Maybe.map (getProp .locked) of
+            Just True ->
+                root
+
+            _ ->
+                siblings
+                    |> List.filter excludeLocked
+                    |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) root
+                    |> updateShare id share
 
 
 {-| Find a node in a tree, by its id.

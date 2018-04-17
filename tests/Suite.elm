@@ -61,6 +61,13 @@ suite =
                         |> List.map (Maybe.map (Tree.getProp .share))
                         |> Expect.equal ([ Just 30, Just 30, Just 15, Just 25 ])
                         |> asTest "should distribute share handling a locked node and three siblings"
+                    , Tree.demoTree
+                        |> Tree.toggleLock 7
+                        |> Tree.distributeShare 7 15
+                        |> Tree.findNodes [ 2, 4, 6, 7 ]
+                        |> List.map (Maybe.map (Tree.getProp .share))
+                        |> Expect.equal ([ Just 25, Just 25, Just 25, Just 25 ])
+                        |> asTest "should reject distribution if the node is locked"
                     ]
                 ]
             ]
