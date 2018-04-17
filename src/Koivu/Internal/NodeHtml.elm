@@ -52,25 +52,32 @@ nodeClasses { root, settings } level ((Node { children, qty }) as node) =
             ]
 
 
-rangeInput : Int -> Int -> Int -> (Int -> msg) -> Html msg
-rangeInput min max val tagger =
-    div []
-        [ input
-            [ type_ "range"
-            , class "slider is-fullwidth"
-            , Attr.min <| toString min
-            , Attr.max <| toString max
-            , value <| toString val
-            , onInput
-                (\val ->
-                    val
-                        |> String.toInt
-                        |> Result.withDefault 0
-                        |> tagger
-                )
-            ]
-            []
+rangeInput : Int -> Int -> Int -> Bool -> (Int -> msg) -> Html msg
+rangeInput min max val disabled_ tagger =
+    input
+        [ type_ "range"
+        , class "slider is-fullwidth"
+        , Attr.min <| toString min
+        , Attr.max <| toString max
+        , value <| toString val
+        , disabled disabled_
+        , onInput
+            (\val ->
+                val
+                    |> String.toInt
+                    |> Result.withDefault 0
+                    |> tagger
+            )
         ]
+        []
+
+
+lockIcon : Bool -> Html msg
+lockIcon locked =
+    if locked then
+        text "🔒"
+    else
+        text "🔓"
 
 
 rangeForm : EditorConfig msg -> Node -> Html msg
@@ -90,13 +97,21 @@ rangeForm config node =
 
         onlyChild =
             (config.root |> Tree.getSiblings nodeInfo.id |> List.length) == 0
+
+        maxSharable =
+            Tree.getMaxSharable nodeInfo.id config.root
     in
         if not isRoot && onlyChild then
             text ""
         else if isRoot then
-            rangeInput minNodeQty maxGlobalQty globalQty config.updateGlobalQty
+            rangeInput minNodeQty maxGlobalQty globalQty False config.updateGlobalQty
+        else if Tree.isLockable nodeInfo.id config.root then
+            div [ class "with-lock" ]
+                [ a [ onClick <| config.toggleLock nodeInfo.id ] [ lockIcon nodeInfo.locked ]
+                , rangeInput 1 maxSharable nodeInfo.share nodeInfo.locked (config.updateShare nodeInfo.id)
+                ]
         else
-            rangeInput 1 100 nodeInfo.share (config.updateShare nodeInfo.id)
+            rangeInput 1 maxSharable nodeInfo.share False (config.updateShare nodeInfo.id)
 
 
 shareInfo : Int -> Int -> Html msg

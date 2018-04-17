@@ -29,18 +29,59 @@ suite =
                 |> asTest "should not find a non-existent node"
             ]
         , describe "distributeShare"
+            [ describe "No lock"
+                [ Tree.demoTree
+                    |> Tree.distributeShare 11 40
+                    |> Tree.findNode 12
+                    |> Maybe.map (Tree.getProp .share)
+                    |> Expect.equal (Just 60)
+                    |> asTest "should distribute share across two nodes"
+                , Tree.demoTree
+                    |> Tree.distributeShare 5 40
+                    |> Tree.findNodes [ 8, 9 ]
+                    |> List.map (Maybe.map (Tree.getProp .share))
+                    |> Expect.equal [ Just 30, Just 30 ]
+                    |> asTest "should distribute share across three nodes"
+                ]
+            , describe "Locked node"
+                [ describe "Two siblings"
+                    [ Tree.demoTree
+                        |> Tree.toggleLock 5
+                        |> Tree.distributeShare 8 22
+                        |> Tree.findNodes [ 5, 8, 9 ]
+                        |> List.map (Maybe.map (Tree.getProp .share))
+                        |> Expect.equal ([ Just 34, Just 22, Just 44 ])
+                        |> asTest "should distribute share handling a locked node and two siblings"
+                    ]
+                , describe "Three siblings"
+                    [ Tree.demoTree
+                        |> Tree.toggleLock 7
+                        |> Tree.distributeShare 6 15
+                        |> Tree.findNodes [ 2, 4, 6, 7 ]
+                        |> List.map (Maybe.map (Tree.getProp .share))
+                        |> Expect.equal ([ Just 30, Just 30, Just 15, Just 25 ])
+                        |> asTest "should distribute share handling a locked node and three siblings"
+                    , Tree.demoTree
+                        |> Tree.toggleLock 7
+                        |> Tree.distributeShare 7 15
+                        |> Tree.findNodes [ 2, 4, 6, 7 ]
+                        |> List.map (Maybe.map (Tree.getProp .share))
+                        |> Expect.equal ([ Just 25, Just 25, Just 25, Just 25 ])
+                        |> asTest "should reject distribution if the node is locked"
+                    ]
+                ]
+            ]
+        , describe "getMaxSharable"
             [ Tree.demoTree
-                |> Tree.distributeShare 11 40
-                |> Tree.findNode 12
-                |> Maybe.map (Tree.getProp .share)
-                |> Expect.equal (Just 60)
-                |> asTest "should distribute share across two nodes"
+                |> Tree.toggleLock 5
+                |> Tree.getMaxSharable 8
+                |> Expect.equal 65
+                |> asTest "should compute maximum sharable value for node"
             , Tree.demoTree
-                |> Tree.distributeShare 5 40
-                |> Tree.findNodes [ 8, 9 ]
-                |> List.map (Maybe.map (Tree.getProp .share))
-                |> Expect.equal [ Just 30, Just 30 ]
-                |> asTest "should distribute share across three nodes"
+                |> Tree.toggleLock 8
+                |> Tree.getMaxSharable 5
+                |> Expect.equal 66
+                |> asTest "should compute maximum sharable value for a sibling"
             ]
         , describe "getParent"
             [ Tree.demoTree

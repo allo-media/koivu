@@ -79,6 +79,15 @@ $grey-color: rgba(0,0,0,0.1);
 
       }
 
+      .with-lock {
+        display: grid;
+        grid-template-columns: 20px 1fr;
+        >a {
+          margin-top: -6px;
+          color: #777;
+        }
+      }
+
       &.leaf {
         border: 3px solid $leaf-color;
         color: $leaf-color;
@@ -150,6 +159,16 @@ $grey-color: rgba(0,0,0,0.1);
         margin: 5px 0;
 
         &:active {
+          &::-webkit-slider-thumb {
+            -webkit-transform: none;
+            transform: none;
+          }
+        }
+        &:disabled {
+          position: fixed;
+          top: 56px;
+          left: 26px;
+          width: 103px;
           &::-webkit-slider-thumb {
             -webkit-transform: none;
             transform: none;

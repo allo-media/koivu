@@ -45,13 +45,13 @@ You'll find a more elaborate integration example [here](https://github.com/allo-
 -}
 
 import Dom
+import Keyboard
 import Koivu.Internal.SvgEditor as SvgEditor
 import Koivu.Settings exposing (Settings)
 import Koivu.Tree as Tree exposing (Node(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Keyboard exposing (KeyCode)
 import Task
 
 
@@ -72,10 +72,10 @@ type Msg
     | CommitLabel
     | DeleteNode Int
     | EditNode Int
-    | KeyUp KeyCode
     | NoOp
     | Normalize
     | SetAutoNormalize Bool
+    | ToggleLock Int
     | UpdateLabel Int String
     | UpdateQty Int
     | UpdateShare Int Int
@@ -168,12 +168,6 @@ update msg ({ settings } as model) =
         Normalize ->
             { model | root = model.root |> Tree.normalize settings.minNodeQty } ! []
 
-        KeyUp code ->
-            if code == 27 then
-                { model | editedNode = Nothing } ! []
-            else
-                model ! []
-
         SetAutoNormalize autoNormalize ->
             { model
                 | root =
@@ -182,6 +176,13 @@ update msg ({ settings } as model) =
                     else
                         model.root
                 , settings = { settings | autoNormalize = autoNormalize }
+            }
+                ! []
+
+        ToggleLock id ->
+            { model
+                | editedNode = Nothing
+                , root = model.root |> Tree.toggleLock id
             }
                 ! []
 
@@ -213,7 +214,15 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     -- FIXME: this triggers many updates for no reason, couldn't filter Esc
     -- key here ?
-    Sub.batch [ Keyboard.ups KeyUp ]
+    Sub.batch
+        [ Keyboard.ups
+            (\keyCode ->
+                if keyCode == 27 then
+                    CancelEdit
+                else
+                    NoOp
+            )
+        ]
 
 
 
@@ -252,6 +261,7 @@ view model =
             , editNode = EditNode
             , editedNode = model.editedNode
             , root = model.root
+            , toggleLock = ToggleLock
             , updateLabel = UpdateLabel
             , updateGlobalQty = UpdateQty
             , updateShare = UpdateShare

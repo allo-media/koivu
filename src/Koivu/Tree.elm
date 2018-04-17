@@ -6,18 +6,21 @@ module Koivu.Tree
         , appendChild
         , createNode
         , deleteNode
-        , distributeShare
         , distributeQty
+        , distributeShare
         , demoTree
         , empty
         , encode
         , findNode
         , findNodes
+        , getMaxSharable
         , getParent
         , getProp
         , getSiblings
+        , isLockable
         , isUnderfed
         , normalize
+        , toggleLock
         , updateLabel
         , updateShare
         )
@@ -32,12 +35,12 @@ module Koivu.Tree
 
 # Building a tree
 
-@docs empty, demoTree, appendChild, createNode, deleteNode, updateLabel, updateShare
+@docs empty, demoTree, appendChild, createNode, deleteNode, toggleLock, updateLabel, updateShare
 
 
 # Querying a tree
 
-@docs allowExpand, findNode, findNodes, getParent, getProp, getSiblings, isUnderfed
+@docs allowExpand, findNode, findNodes, getMaxSharable, getParent, getProp, getSiblings, isLockable, isUnderfed
 
 
 # Normalizing a tree
@@ -68,6 +71,7 @@ type alias NodeInfo =
     , label : String
     , qty : Int
     , share : Int
+    , locked : Bool
     , children : List Node
     }
 
@@ -133,6 +137,7 @@ createNode (Node root) =
             , label = "Node #" ++ toString id
             , qty = 0
             , share = 100 // List.length root.children + 1
+            , locked = False
             , children = []
             }
 
@@ -170,25 +175,46 @@ distributeQty qty (Node node) =
             }
 
 
-{-| Distributes shares to a given node siblings in a tree.
+{-| Distributes shares to a given node siblings in a tree, dealing with a
+possibly locked sibling.
+
+If the target node itself is locked, this function is a noop.
+
 -}
 distributeShare : Int -> Int -> Node -> Node
-distributeShare id share node =
+distributeShare id share root =
     let
         siblings =
-            node |> getSiblings id
+            root |> getSiblings id
+
+        ( totalShare, nbSiblings, excludeLocked ) =
+            case List.filter (getProp .locked) siblings of
+                [ Node locked ] ->
+                    ( 100 - locked.share
+                    , List.length siblings - 1
+                    , \(Node { id }) -> id /= locked.id
+                    )
+
+                _ ->
+                    ( 100, List.length siblings, always True )
 
         toDistribute =
-            case (100 - share) // List.length siblings of
+            case (totalShare - share) // nbSiblings of
                 0 ->
                     1
 
                 n ->
                     n
     in
-        siblings
-            |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) node
-            |> updateShare id share
+        case root |> findNode id |> Maybe.map (getProp .locked) of
+            Just True ->
+                root
+
+            _ ->
+                siblings
+                    |> List.filter excludeLocked
+                    |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) root
+                    |> updateShare id share
 
 
 {-| Find a node in a tree, by its id.
@@ -211,6 +237,24 @@ findNode id root =
 findNodes : List Int -> Node -> List (Maybe Node)
 findNodes ids root =
     ids |> List.map (\id -> findNode id root)
+
+
+{-| Get maximum share a node can reach.
+-}
+getMaxSharable : Int -> Node -> Int
+getMaxSharable id node =
+    -- Note: a node share can't be < 1, so we compute the maximum share for this
+    -- node with all siblings having a minimum share of 1
+    let
+        siblings =
+            node |> getSiblings id
+    in
+        case List.filter (getProp .locked) siblings of
+            [ Node locked ] ->
+                (100 - locked.share) - (List.length siblings - 1)
+
+            _ ->
+                100 - List.length siblings
 
 
 {-| Retrieve the parent of a given node in a tree, by its id.
@@ -254,7 +298,8 @@ getSiblings id node =
             []
 
 
-{-| Checks whether a node has the minimum quantity configured in the `Settings`.
+{-| Checks whether a tree has all its nodes having the minimum quantity configured
+in the `Settings`.
 -}
 isUnderfed : Int -> Node -> Bool
 isUnderfed min (Node root) =
@@ -264,6 +309,24 @@ isUnderfed min (Node root) =
         root.children
             |> List.filter (isUnderfed min)
             |> (\underfed -> List.length underfed > 0)
+
+
+{-| Check whether a node can be locked or not. A node can be locked if:
+
+  - it has more than one sibling
+  - and none of its sibling are already locked
+
+-}
+isLockable : Int -> Node -> Bool
+isLockable id root =
+    let
+        siblings =
+            getSiblings id root
+
+        noSiblingLocked =
+            List.all (getProp (not << .locked)) siblings
+    in
+        List.length siblings > 1 && noSiblingLocked
 
 
 maxId : List Node -> Int
@@ -290,12 +353,12 @@ normalize : Int -> Node -> Node
 normalize min ((Node nodeInfo) as node) =
     if isUnderfed min node then
         let
-            newQty =
+            increasedQty =
                 nodeInfo.qty + 1000
 
             increased =
-                Node { nodeInfo | qty = newQty }
-                    |> distributeQty newQty
+                Node { nodeInfo | qty = increasedQty }
+                    |> distributeQty increasedQty
         in
             normalize min increased
     else
@@ -307,6 +370,21 @@ normalize min ((Node nodeInfo) as node) =
 spreadShare : Int -> List Node -> List Node
 spreadShare total nodes =
     nodes |> List.map (\(Node ni) -> Node { ni | share = total // List.length nodes })
+
+
+{-| Toggles a locked status of a node.
+-}
+toggleLock : Int -> Node -> Node
+toggleLock id (Node root) =
+    if root.id == id then
+        Node { root | locked = not root.locked }
+    else
+        Node
+            { root
+                | children =
+                    root.children
+                        |> List.map (toggleLock id)
+            }
 
 
 {-| Updates a node in a tree.
@@ -340,11 +418,21 @@ updateLabel id label (Node root) =
 
 
 {-| Update a node share in a tree.
+
+Note: if share is < 1, it will be forced to 1.
+
 -}
 updateShare : Int -> Int -> Node -> Node
 updateShare id share (Node root) =
     if root.id == id then
-        Node { root | share = share }
+        Node
+            { root
+                | share =
+                    if share > 0 then
+                        share
+                    else
+                        1
+            }
     else
         Node
             { root
@@ -367,6 +455,7 @@ empty =
         , label = "Source"
         , qty = 0
         , share = 100
+        , locked = False
         , children = []
         }
 
@@ -380,18 +469,21 @@ demoTree =
         , label = "Source"
         , qty = 0
         , share = 100
+        , locked = False
         , children =
             [ Node
                 { id = 2
                 , label = "Avant-vente"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children =
                     [ Node
                         { id = 3
                         , label = "Lead converti"
                         , qty = 0
                         , share = 50
+                        , locked = False
                         , children = []
                         }
                     , Node
@@ -399,12 +491,14 @@ demoTree =
                         , label = "Non converti"
                         , qty = 0
                         , share = 50
+                        , locked = False
                         , children =
                             [ Node
                                 { id = 11
                                 , label = "Engagé"
                                 , qty = 0
                                 , share = 50
+                                , locked = False
                                 , children = []
                                 }
                             , Node
@@ -412,6 +506,7 @@ demoTree =
                                 , label = "Froid"
                                 , qty = 0
                                 , share = 50
+                                , locked = False
                                 , children = []
                                 }
                             ]
@@ -423,12 +518,14 @@ demoTree =
                 , label = "Après vente"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children =
                     [ Node
                         { id = 5
                         , label = "Pas d'insatisfaction"
                         , qty = 0
                         , share = 34
+                        , locked = False
                         , children = []
                         }
                     , Node
@@ -436,6 +533,7 @@ demoTree =
                         , label = "Insatisfaction"
                         , qty = 0
                         , share = 33
+                        , locked = False
                         , children = []
                         }
                     , Node
@@ -443,6 +541,7 @@ demoTree =
                         , label = "Risque d'attrition"
                         , qty = 0
                         , share = 33
+                        , locked = False
                         , children = []
                         }
                     ]
@@ -452,6 +551,7 @@ demoTree =
                 , label = "Autre demande"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children = []
                 }
             , Node
@@ -459,6 +559,7 @@ demoTree =
                 , label = "Aucune action"
                 , qty = 0
                 , share = 25
+                , locked = False
                 , children = []
                 }
             ]

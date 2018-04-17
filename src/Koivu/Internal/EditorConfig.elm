@@ -13,6 +13,7 @@ type alias EditorConfig msg =
     , editedNode : Maybe Int
     , root : Node
     , settings : Settings
+    , toggleLock : Int -> msg
     , updateGlobalQty : Int -> msg
     , updateLabel : Int -> String -> msg
     , updateShare : Int -> Int -> msg
