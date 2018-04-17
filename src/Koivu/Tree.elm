@@ -243,8 +243,8 @@ findNodes ids root =
 -}
 getMaxSharable : Int -> Node -> Int
 getMaxSharable id node =
-    -- Note: a node share can't be < 1, that's why we compute this maximum with
-    -- all siblings having a minimum share of 1
+    -- Note: a node share can't be < 1, so we compute the maximum share for this
+    -- node with all siblings having a minimum share of 1
     let
         siblings =
             node |> getSiblings id

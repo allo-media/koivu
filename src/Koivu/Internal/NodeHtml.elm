@@ -98,7 +98,7 @@ rangeForm config node =
         onlyChild =
             (config.root |> Tree.getSiblings nodeInfo.id |> List.length) == 0
 
-        sharableMax =
+        maxSharable =
             Tree.getMaxSharable nodeInfo.id config.root
     in
         if not isRoot && onlyChild then
@@ -108,10 +108,10 @@ rangeForm config node =
         else if Tree.isLockable nodeInfo.id config.root then
             div [ class "with-lock" ]
                 [ a [ onClick <| config.toggleLock nodeInfo.id ] [ lockIcon nodeInfo.locked ]
-                , rangeInput 1 sharableMax nodeInfo.share nodeInfo.locked (config.updateShare nodeInfo.id)
+                , rangeInput 1 maxSharable nodeInfo.share nodeInfo.locked (config.updateShare nodeInfo.id)
                 ]
         else
-            rangeInput 1 sharableMax nodeInfo.share False (config.updateShare nodeInfo.id)
+            rangeInput 1 maxSharable nodeInfo.share False (config.updateShare nodeInfo.id)
 
 
 shareInfo : Int -> Int -> Html msg
