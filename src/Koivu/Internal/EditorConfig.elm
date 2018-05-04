@@ -1,20 +1,20 @@
 module Koivu.Internal.EditorConfig exposing (EditorConfig)
 
 import Koivu.Settings exposing (Settings)
-import Koivu.Tree exposing (Node)
+import Koivu.Tree exposing (Tree, NodeInfo)
 
 
 type alias EditorConfig msg =
-    { appendNode : Int -> msg
+    { appendNode : NodeInfo -> msg
     , cancelEdit : msg
     , commitLabel : msg
-    , deleteNode : Int -> msg
-    , editNode : Int -> msg
-    , editedNode : Maybe Int
-    , root : Node
+    , deleteNode : NodeInfo -> msg
+    , editNode : NodeInfo -> msg
+    , editedNode : Maybe NodeInfo
+    , root : Tree
     , settings : Settings
-    , toggleLock : Int -> msg
+    , toggleLock : NodeInfo -> msg
     , updateGlobalQty : Int -> msg
-    , updateLabel : Int -> String -> msg
-    , updateShare : Int -> Int -> msg
+    , updateLabel : NodeInfo -> String -> msg
+    , updateShare : NodeInfo -> Int -> msg
     }

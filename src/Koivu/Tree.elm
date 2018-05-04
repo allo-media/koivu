@@ -1,27 +1,22 @@
 module Koivu.Tree
     exposing
-        ( Node(..)
+        ( Tree
         , NodeInfo
         , allowExpand
         , appendChild
-        , createNode
+        , createNodeInfo
         , deleteNode
         , distributeQty
         , distributeShare
         , demoTree
         , empty
         , encode
-        , findNode
-        , findNodes
+        , getById
         , getMaxSharable
-        , getParent
-        , getProp
-        , getSiblings
         , isLockable
         , isUnderfed
         , normalize
         , toggleLock
-        , updateLabel
         , updateShare
         )
 
@@ -30,17 +25,17 @@ module Koivu.Tree
 
 # Basics
 
-@docs Node, NodeInfo
+@docs Tree, NodeInfo
 
 
 # Building a tree
 
-@docs empty, demoTree, appendChild, createNode, deleteNode, toggleLock, updateLabel, updateShare
+@docs empty, demoTree, appendChild, createNodeInfo, deleteNode, getById, toggleLock, updateShare
 
 
 # Querying a tree
 
-@docs allowExpand, findNode, findNodes, getMaxSharable, getParent, getProp, getSiblings, isLockable, isUnderfed
+@docs allowExpand, getMaxSharable, isLockable, isUnderfed
 
 
 # Normalizing a tree
@@ -54,17 +49,18 @@ module Koivu.Tree
 
 -}
 
+import Canopy
 import Json.Encode as Encode
 import Koivu.Settings exposing (Settings)
 
 
-{-| A tree node.
+{-| A Koivu Tree.
 -}
-type Node
-    = Node NodeInfo
+type alias Tree =
+    Canopy.Node NodeInfo
 
 
-{-| A tree node information.
+{-| A node information.
 -}
 type alias NodeInfo =
     { id : Int
@@ -72,53 +68,22 @@ type alias NodeInfo =
     , qty : Int
     , share : Int
     , locked : Bool
-    , children : List Node
     }
-
-
-
--- Encoders
-
-
-{-| A tree JSON encoder.
-
-    demoTree
-    |> encode
-    |> Json.Encode.encode 2
-
--}
-encode : Node -> Encode.Value
-encode (Node nodeInfo) =
-    Encode.object
-        [ ( "label", Encode.string nodeInfo.label )
-        , ( "children", nodeInfo.children |> List.map encode |> Encode.list )
-        ]
-
-
-
--- Utils
 
 
 {-| Check whether a node is allowed to append new children.
 -}
-allowExpand : Settings -> Int -> List Node -> Bool
+allowExpand : Settings -> Int -> List Tree -> Bool
 allowExpand { maxChildren, maxLevels } level children =
     List.length children < maxChildren && level < maxLevels
 
 
-{-| Append a new child to a node identified by its id in a tree.
+{-| Append a new NodeInfo to a node in a tree.
 -}
-appendChild : Int -> Node -> Node -> Node
-appendChild id newNode (Node root) =
-    if root.id == id then
-        Node { root | children = spreadShare 100 (newNode :: root.children) }
-    else
-        Node
-            { root
-                | children =
-                    root.children
-                        |> List.map (appendChild id newNode)
-            }
+appendChild : NodeInfo -> NodeInfo -> Tree -> Tree
+appendChild target child tree =
+    -- FIXME: should be usable right from Canopy directly
+    tree |> Canopy.append target child
 
 
 {-| Create a new node to be addable to a given tree.
@@ -126,53 +91,57 @@ appendChild id newNode (Node root) =
 A unique identifier is generated for this node.
 
 -}
-createNode : Node -> Node
-createNode (Node root) =
+createNodeInfo : Tree -> NodeInfo
+createNodeInfo root =
     let
-        id =
-            maxId root.children + 1
+        nextId =
+            maxId root + 1
     in
-        Node
-            { id = id
-            , label = "Node #" ++ toString id
-            , qty = 0
-            , share = 100 // List.length root.children + 1
-            , locked = False
-            , children = []
-            }
+        { id = nextId
+        , label = "Node #" ++ toString nextId
+        , qty = 0
+        , share = 100 // List.length (Canopy.children root) + 1
+        , locked = False
+        }
 
 
-{-| Deletes a node from a tree, by its id.
+{-| Deletes a node from a tree.
 -}
-deleteNode : Int -> Node -> Node
-deleteNode id root =
-    case getParent id root of
-        Just (Node parent) ->
-            let
-                newChildren =
-                    parent.children
-                        |> List.filter (\node -> getProp .id node /= id)
-                        |> spreadShare 100
-            in
-                root |> updateNode parent.id (Node { parent | children = newChildren })
+deleteNode : NodeInfo -> Tree -> Tree
+deleteNode target root =
+    -- FIXME: |> spreadShare 100 on the parent
+    root |> Canopy.remove target
 
-        Nothing ->
-            root
+
+{-| A tree JSON encoder.
+
+    demoTree
+        |> encode
+        |> Json.Encode.encode 2
+
+-}
+encode : Tree -> Encode.Value
+encode tree =
+    Canopy.encode (.label >> Encode.string) tree
 
 
 {-| Distributes a quantity across all nodes in a tree.
 -}
-distributeQty : Int -> Node -> Node
-distributeQty qty (Node node) =
+distributeQty : Int -> Tree -> Tree
+distributeQty qty tree =
     let
+        nodeInfo =
+            Canopy.value tree
+
         nodeQty =
-            qty * node.share // 100
+            qty * nodeInfo.share // 100
+
+        newNodeInfo =
+            Canopy.node
+                { nodeInfo | qty = nodeQty }
+                (tree |> Canopy.children |> List.map (distributeQty nodeQty))
     in
-        Node
-            { node
-                | qty = nodeQty
-                , children = node.children |> List.map (distributeQty nodeQty)
-            }
+        tree |> Canopy.replaceAt nodeInfo newNodeInfo
 
 
 {-| Distributes shares to a given node siblings in a tree, dealing with a
@@ -181,18 +150,18 @@ possibly locked sibling.
 If the target node itself is locked, this function is a noop.
 
 -}
-distributeShare : Int -> Int -> Node -> Node
-distributeShare id share root =
+distributeShare : NodeInfo -> Int -> Tree -> Tree
+distributeShare target share root =
     let
         siblings =
-            root |> getSiblings id
+            root |> Canopy.siblings target
 
         ( totalShare, nbSiblings, excludeLocked ) =
-            case List.filter (getProp .locked) siblings of
-                [ Node locked ] ->
-                    ( 100 - locked.share
+            case siblings |> List.filter (Canopy.value >> .locked) |> List.map Canopy.value of
+                [ lockedNodeInfo ] ->
+                    ( 100 - lockedNodeInfo.share
                     , List.length siblings - 1
-                    , \(Node { id }) -> id /= locked.id
+                    , \(Canopy.Node { id } _) -> id /= lockedNodeInfo.id
                     )
 
                 _ ->
@@ -206,109 +175,43 @@ distributeShare id share root =
                 n ->
                     n
     in
-        case root |> findNode id |> Maybe.map (getProp .locked) of
+        case root |> Canopy.get target |> Maybe.map (Canopy.value >> .locked) of
             Just True ->
                 root
 
             _ ->
                 siblings
                     |> List.filter excludeLocked
-                    |> List.foldl (\(Node { id }) tree -> updateShare id toDistribute tree) root
-                    |> updateShare id share
+                    |> List.foldl (\(Canopy.Node val _) tree -> updateShare val toDistribute tree) root
+                    |> updateShare target share
 
 
-{-| Find a node in a tree, by its id.
+{-| Get a NodeInfo by its id in a tree.
 -}
-findNode : Int -> Node -> Maybe Node
-findNode id root =
-    if getProp .id root == id then
-        Just root
-    else
-        root
-            |> getProp .children
-            |> List.map (findNode id)
-            |> List.filter ((/=) Nothing)
-            |> List.head
-            |> Maybe.withDefault Nothing
-
-
-{-| Find nodes in a tree, by its id.
--}
-findNodes : List Int -> Node -> List (Maybe Node)
-findNodes ids root =
-    ids |> List.map (\id -> findNode id root)
+getById : Int -> Tree -> Maybe NodeInfo
+getById id tree =
+    tree
+        |> Canopy.seek (.id >> (==) id)
+        |> List.head
+        |> Maybe.map Canopy.value
 
 
 {-| Get maximum share a node can reach.
 -}
-getMaxSharable : Int -> Node -> Int
-getMaxSharable id node =
+getMaxSharable : NodeInfo -> Tree -> Int
+getMaxSharable target node =
     -- Note: a node share can't be < 1, so we compute the maximum share for this
     -- node with all siblings having a minimum share of 1
     let
         siblings =
-            node |> getSiblings id
+            node |> Canopy.siblings target
     in
-        case List.filter (getProp .locked) siblings of
-            [ Node locked ] ->
-                (100 - locked.share) - (List.length siblings - 1)
+        case List.filter (Canopy.value >> .locked) siblings of
+            [ Canopy.Node lockedNodeInfo _ ] ->
+                (100 - lockedNodeInfo.share) - (List.length siblings - 1)
 
             _ ->
                 100 - List.length siblings
-
-
-{-| Retrieve the parent of a given node in a tree, by its id.
--}
-getParent : Int -> Node -> Maybe Node
-getParent id root =
-    root
-        |> getProp .children
-        |> List.foldl
-            (\node acc ->
-                case acc of
-                    Just found ->
-                        Just found
-
-                    Nothing ->
-                        if getProp .id node == id then
-                            Just root
-                        else
-                            getParent id node
-            )
-            Nothing
-
-
-{-| Helper to retrieve a `NodeInfo` property from a node.
--}
-getProp : (NodeInfo -> a) -> Node -> a
-getProp getter (Node info) =
-    getter info
-
-
-{-| Retrieve a node siblings identified by its id in a tree.
--}
-getSiblings : Int -> Node -> List Node
-getSiblings id node =
-    case getParent id node of
-        Just (Node parentInfo) ->
-            parentInfo.children
-                |> List.filter (\node -> getProp .id node /= id)
-
-        Nothing ->
-            []
-
-
-{-| Checks whether a tree has all its nodes having the minimum quantity configured
-in the `Settings`.
--}
-isUnderfed : Int -> Node -> Bool
-isUnderfed min (Node root) =
-    if root.qty < min then
-        True
-    else
-        root.children
-            |> List.filter (isUnderfed min)
-            |> (\underfed -> List.length underfed > 0)
 
 
 {-| Check whether a node can be locked or not. A node can be locked if:
@@ -317,106 +220,85 @@ isUnderfed min (Node root) =
   - and none of its sibling are already locked
 
 -}
-isLockable : Int -> Node -> Bool
-isLockable id root =
+isLockable : NodeInfo -> Tree -> Bool
+isLockable target root =
     let
         siblings =
-            getSiblings id root
+            Canopy.siblings target root
 
         noSiblingLocked =
-            List.all (getProp (not << .locked)) siblings
+            siblings |> List.all (Canopy.value >> .locked >> not)
     in
         List.length siblings > 1 && noSiblingLocked
 
 
-maxId : List Node -> Int
-maxId nodes =
-    nodes
-        |> List.map
-            (\(Node { id, children }) ->
-                let
-                    max =
-                        maxId children
-                in
-                    if id > max then
-                        id
-                    else
-                        max
-            )
+{-| Checks whether a tree has all its nodes having the minimum quantity configured
+in the `Settings`.
+-}
+isUnderfed : Int -> Tree -> Bool
+isUnderfed min root =
+    if (Canopy.value root).qty < min then
+        True
+    else
+        root
+            |> Canopy.children
+            |> List.filter (isUnderfed min)
+            |> (\underfed -> List.length underfed > 0)
+
+
+maxId : Tree -> Int
+maxId tree =
+    tree
+        |> Canopy.values
+        |> List.map .id
         |> List.maximum
-        |> Maybe.withDefault 1
+        |> Maybe.withDefault 0
 
 
 {-| Normalize a tree, ensuring all leaves have a minimum quantity assigned.
 -}
-normalize : Int -> Node -> Node
-normalize min ((Node nodeInfo) as node) =
-    if isUnderfed min node then
+normalize : Int -> Tree -> Tree
+normalize min root =
+    if isUnderfed min root then
         let
+            nodeInfo =
+                Canopy.value root
+
             increasedQty =
                 nodeInfo.qty + 1000
 
             increased =
-                Node { nodeInfo | qty = increasedQty }
+                root
+                    |> Canopy.replaceValue { nodeInfo | qty = increasedQty }
                     |> distributeQty increasedQty
         in
             normalize min increased
     else
-        node
+        root
+
+
+
+-- TO BE UPDATED
 
 
 {-| Spread shares across a list of nodes.
 -}
-spreadShare : Int -> List Node -> List Node
+spreadShare : Int -> List Tree -> List Tree
 spreadShare total nodes =
-    nodes |> List.map (\(Node ni) -> Node { ni | share = total // List.length nodes })
+    nodes
+        |> List.map
+            (\((Canopy.Node ni _) as node) ->
+                node |> Canopy.updateValue (\ni -> { ni | share = total // List.length nodes })
+            )
 
 
 {-| Toggles a locked status of a node. Locking a node means its share value is
 locked and can't be modified, so distribution is guaranteed across its siblings
 only.
 -}
-toggleLock : Int -> Node -> Node
-toggleLock id (Node root) =
-    if root.id == id then
-        Node { root | locked = not root.locked }
-    else
-        Node
-            { root
-                | children =
-                    root.children
-                        |> List.map (toggleLock id)
-            }
-
-
-{-| Updates a node in a tree.
--}
-updateNode : Int -> Node -> Node -> Node
-updateNode id node (Node root) =
-    if root.id == id then
-        node
-    else
-        Node
-            { root
-                | children =
-                    root.children
-                        |> List.map (updateNode id node)
-            }
-
-
-{-| Update a node label in a tree.
--}
-updateLabel : Int -> String -> Node -> Node
-updateLabel id label (Node root) =
-    if root.id == id then
-        Node { root | label = label }
-    else
-        Node
-            { root
-                | children =
-                    root.children
-                        |> List.map (updateLabel id label)
-            }
+toggleLock : NodeInfo -> Tree -> Tree
+toggleLock target root =
+    root |> Canopy.updateValueAt target (\ni -> { ni | locked = not <| ni.locked })
 
 
 {-| Update a node share in a tree.
@@ -424,24 +306,16 @@ updateLabel id label (Node root) =
 Note: if share is < 1, it will be forced to 1.
 
 -}
-updateShare : Int -> Int -> Node -> Node
-updateShare id share (Node root) =
-    if root.id == id then
-        Node
-            { root
-                | share =
-                    if share > 0 then
-                        share
-                    else
-                        1
-            }
-    else
-        Node
-            { root
-                | children =
-                    root.children
-                        |> List.map (updateShare id share)
-            }
+updateShare : NodeInfo -> Int -> Tree -> Tree
+updateShare target share tree =
+    tree
+        |> Canopy.updateValueAt target
+            (\ni ->
+                if share > 0 then
+                    { ni | share = share }
+                else
+                    { ni | share = 1 }
+            )
 
 
 
@@ -450,119 +324,106 @@ updateShare id share (Node root) =
 
 {-| An empty node.
 -}
-empty : Node
+empty : Tree
 empty =
-    Node
+    Canopy.leaf
         { id = 1
         , label = "Source"
         , qty = 0
         , share = 100
         , locked = False
-        , children = []
         }
 
 
 {-| A sample tree, for demo purpose.
 -}
-demoTree : Node
+demoTree : Tree
 demoTree =
-    Node
+    Canopy.node
         { id = 1
         , label = "Source"
         , qty = 0
         , share = 100
         , locked = False
-        , children =
-            [ Node
-                { id = 2
-                , label = "Avant-vente"
+        }
+        [ Canopy.node
+            { id = 2
+            , label = "Avant-vente"
+            , qty = 0
+            , share = 25
+            , locked = False
+            }
+            [ Canopy.leaf
+                { id = 3
+                , label = "Lead converti"
                 , qty = 0
-                , share = 25
+                , share = 50
                 , locked = False
-                , children =
-                    [ Node
-                        { id = 3
-                        , label = "Lead converti"
-                        , qty = 0
-                        , share = 50
-                        , locked = False
-                        , children = []
-                        }
-                    , Node
-                        { id = 10
-                        , label = "Non converti"
-                        , qty = 0
-                        , share = 50
-                        , locked = False
-                        , children =
-                            [ Node
-                                { id = 11
-                                , label = "Engagé"
-                                , qty = 0
-                                , share = 50
-                                , locked = False
-                                , children = []
-                                }
-                            , Node
-                                { id = 12
-                                , label = "Froid"
-                                , qty = 0
-                                , share = 50
-                                , locked = False
-                                , children = []
-                                }
-                            ]
-                        }
-                    ]
                 }
-            , Node
-                { id = 4
-                , label = "Après vente"
+            , Canopy.node
+                { id = 10
+                , label = "Non converti"
                 , qty = 0
-                , share = 25
+                , share = 50
                 , locked = False
-                , children =
-                    [ Node
-                        { id = 5
-                        , label = "Pas d'insatisfaction"
-                        , qty = 0
-                        , share = 34
-                        , locked = False
-                        , children = []
-                        }
-                    , Node
-                        { id = 8
-                        , label = "Insatisfaction"
-                        , qty = 0
-                        , share = 33
-                        , locked = False
-                        , children = []
-                        }
-                    , Node
-                        { id = 9
-                        , label = "Risque d'attrition"
-                        , qty = 0
-                        , share = 33
-                        , locked = False
-                        , children = []
-                        }
-                    ]
                 }
-            , Node
-                { id = 6
-                , label = "Autre demande"
+                [ Canopy.leaf
+                    { id = 11
+                    , label = "Engagé"
+                    , qty = 0
+                    , share = 50
+                    , locked = False
+                    }
+                , Canopy.leaf
+                    { id = 12
+                    , label = "Froid"
+                    , qty = 0
+                    , share = 50
+                    , locked = False
+                    }
+                ]
+            ]
+        , Canopy.node
+            { id = 4
+            , label = "Après vente"
+            , qty = 0
+            , share = 25
+            , locked = False
+            }
+            [ Canopy.leaf
+                { id = 5
+                , label = "Pas d'insatisfaction"
                 , qty = 0
-                , share = 25
+                , share = 34
                 , locked = False
-                , children = []
                 }
-            , Node
-                { id = 7
-                , label = "Aucune action"
+            , Canopy.leaf
+                { id = 8
+                , label = "Insatisfaction"
                 , qty = 0
-                , share = 25
+                , share = 33
                 , locked = False
-                , children = []
+                }
+            , Canopy.leaf
+                { id = 9
+                , label = "Risque d'attrition"
+                , qty = 0
+                , share = 33
+                , locked = False
                 }
             ]
-        }
+        , Canopy.leaf
+            { id = 6
+            , label = "Autre demande"
+            , qty = 0
+            , share = 25
+            , locked = False
+            }
+        , Canopy.leaf
+            { id = 7
+            , label = "Aucune action"
+            , qty = 0
+            , share = 25
+            , locked = False
+            }
+        ]
