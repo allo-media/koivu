@@ -8,16 +8,6 @@ import Html.Attributes as Attr exposing (..)
 import Html.Events exposing (..)
 
 
-maybeIs : Maybe a -> a -> Bool
-maybeIs maybeValue candidate =
-    case maybeValue of
-        Just value ->
-            value == candidate
-
-        Nothing ->
-            False
-
-
 labelForm : EditorConfig msg -> NodeInfo -> Html msg
 labelForm config nodeInfo =
     Html.form [ onSubmit config.commitLabel ]
@@ -25,6 +15,7 @@ labelForm config nodeInfo =
             [ type_ "text"
             , class "label"
             , id <| "node" ++ toString nodeInfo.id
+            , autocomplete False
             , value nodeInfo.label
             , onInput <| config.updateLabel nodeInfo
             , onBlur config.cancelEdit
@@ -169,7 +160,9 @@ view ({ editNode, editedNode } as config) level node =
         div
             [ nodeClasses config level node ]
             [ -- editable label
-              if maybeIs editedNode nodeInfo then
+              if Maybe.map .id editedNode == Just nodeInfo.id then
+                -- Note: we test for id because the label has possibly changed,
+                -- making a comparison between nodeInfos failing!
                 labelForm config nodeInfo
               else
                 div [ class "actions" ]

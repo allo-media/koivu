@@ -180,10 +180,10 @@ update msg ({ settings } as model) =
             }
                 ! []
 
-        ToggleLock id ->
+        ToggleLock nodeInfo ->
             { model
                 | editedNode = Nothing
-                , root = model.root |> Tree.toggleLock id
+                , root = model.root |> Tree.toggleLock nodeInfo
             }
                 ! []
 
@@ -191,7 +191,6 @@ update msg ({ settings } as model) =
             { model
                 | root =
                     model.root
-                        -- FIXME: does not work (blur)
                         |> Canopy.updateValueAt nodeInfo (\ni -> { ni | label = label })
             }
                 ! []
@@ -203,11 +202,11 @@ update msg ({ settings } as model) =
             }
                 ! []
 
-        UpdateShare id share ->
+        UpdateShare nodeInfo share ->
             { model
                 | root =
                     model.root
-                        |> Tree.distributeShare id share
+                        |> Tree.distributeShare nodeInfo share
                         |> distributeAndNormalize settings
             }
                 ! []
@@ -219,8 +218,6 @@ update msg ({ settings } as model) =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    -- FIXME: this triggers many updates for no reason, couldn't filter Esc
-    -- key here ?
     Sub.batch
         [ Keyboard.ups
             (\keyCode ->
