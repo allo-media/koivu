@@ -11,7 +11,6 @@ module Koivu.Tree
         , demoTree
         , empty
         , encode
-        , getById
         , getMaxSharable
         , isLockable
         , isUnderfed
@@ -30,7 +29,7 @@ module Koivu.Tree
 
 # Building a tree
 
-@docs empty, demoTree, appendChild, createNodeInfo, deleteNode, getById, toggleLock, updateShare
+@docs empty, demoTree, appendChild, createNodeInfo, deleteNode, toggleLock, updateShare
 
 
 # Querying a tree
@@ -78,12 +77,13 @@ allowExpand { maxChildren, maxLevels } level children =
     List.length children < maxChildren && level < maxLevels
 
 
-{-| Append a new NodeInfo to a node in a tree.
+{-| Append a NodeInfo child to a Tree.
 -}
 appendChild : NodeInfo -> NodeInfo -> Tree -> Tree
-appendChild target child tree =
-    -- FIXME: should be usable right from Canopy directly
-    tree |> Canopy.append target child
+appendChild target nodeInfo tree =
+    tree
+        |> Canopy.append target nodeInfo
+        |> spreadShareAt target 100
 
 
 {-| Create a new node to be addable to a given tree.
@@ -105,14 +105,6 @@ createNodeInfo root =
         }
 
 
-{-| Deletes a node from a tree.
--}
-deleteNode : NodeInfo -> Tree -> Tree
-deleteNode target root =
-    -- FIXME: |> spreadShare 100 on the parent
-    root |> Canopy.remove target
-
-
 {-| A tree JSON encoder.
 
     demoTree
@@ -125,6 +117,26 @@ encode tree =
     Canopy.encode (.label >> Encode.string) tree
 
 
+{-| Deletes a node, ensuring to re-spread shares to deleted node siblings.
+-}
+deleteNode : NodeInfo -> Tree -> Tree
+deleteNode nodeInfo tree =
+    case Canopy.parent nodeInfo tree of
+        Just (Canopy.Node parent children) ->
+            tree
+                |> Canopy.remove nodeInfo
+                |> Canopy.replaceAt parent
+                    (Canopy.node parent
+                        (children
+                            |> List.filter (Canopy.value >> (/=) nodeInfo)
+                            |> spreadShare 100
+                        )
+                    )
+
+        Nothing ->
+            tree
+
+
 {-| Distributes a quantity across all nodes in a tree.
 -}
 distributeQty : Int -> Tree -> Tree
@@ -135,13 +147,10 @@ distributeQty qty tree =
 
         nodeQty =
             qty * nodeInfo.share // 100
-
-        newNodeInfo =
-            Canopy.node
-                { nodeInfo | qty = nodeQty }
-                (tree |> Canopy.children |> List.map (distributeQty nodeQty))
     in
-        tree |> Canopy.replaceAt nodeInfo newNodeInfo
+        tree
+            |> Canopy.replaceValue { nodeInfo | qty = nodeQty }
+            |> Canopy.mapChildren (distributeQty nodeQty)
 
 
 {-| Distributes shares to a given node siblings in a tree, dealing with a
@@ -184,16 +193,6 @@ distributeShare target share root =
                     |> List.filter excludeLocked
                     |> List.foldl (\(Canopy.Node val _) tree -> updateShare val toDistribute tree) root
                     |> updateShare target share
-
-
-{-| Get a NodeInfo by its id in a tree.
--}
-getById : Int -> Tree -> Maybe NodeInfo
-getById id tree =
-    tree
-        |> Canopy.seek (.id >> (==) id)
-        |> List.head
-        |> Maybe.map Canopy.value
 
 
 {-| Get maximum share a node can reach.
@@ -277,19 +276,21 @@ normalize min root =
         root
 
 
-
--- TO BE UPDATED
-
-
 {-| Spread shares across a list of nodes.
 -}
 spreadShare : Int -> List Tree -> List Tree
 spreadShare total nodes =
-    nodes
-        |> List.map
-            (\((Canopy.Node ni _) as node) ->
-                node |> Canopy.updateValue (\ni -> { ni | share = total // List.length nodes })
-            )
+    List.map
+        (Canopy.updateValue (\n -> { n | share = total // List.length nodes }))
+        nodes
+
+
+{-| Spread shares to a given node children.
+-}
+spreadShareAt : NodeInfo -> Int -> Tree -> Tree
+spreadShareAt target shares =
+    Canopy.updateAt target
+        (Canopy.children >> spreadShare shares >> Canopy.node target)
 
 
 {-| Toggles a locked status of a node. Locking a node means its share value is
@@ -307,15 +308,14 @@ Note: if share is < 1, it will be forced to 1.
 
 -}
 updateShare : NodeInfo -> Int -> Tree -> Tree
-updateShare target share tree =
-    tree
-        |> Canopy.updateValueAt target
-            (\ni ->
-                if share > 0 then
-                    { ni | share = share }
-                else
-                    { ni | share = 1 }
-            )
+updateShare target share =
+    Canopy.updateValueAt target
+        (\ni ->
+            if share > 0 then
+                { ni | share = share }
+            else
+                { ni | share = 1 }
+        )
 
 
 

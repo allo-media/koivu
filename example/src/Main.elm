@@ -58,8 +58,8 @@ update msg model =
                 , Cmd.batch
                     [ Cmd.map KoivuMsg koivuCmds
                     , case koivuMsg of
-                        EditNode id ->
-                            Ports.select <| "node" ++ toString id
+                        EditNode nodeInfo ->
+                            Ports.select <| "node" ++ toString nodeInfo.id
 
                         _ ->
                             Cmd.none

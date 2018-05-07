@@ -146,12 +146,12 @@ update msg ({ settings } as model) =
         CommitLabel ->
             { model | editedNode = Nothing } ! []
 
-        DeleteNode id ->
+        DeleteNode nodeInfo ->
             { model
                 | editedNode = Nothing
                 , root =
                     model.root
-                        |> Tree.deleteNode id
+                        |> Tree.deleteNode nodeInfo
                         |> distributeAndNormalize settings
             }
                 ! []
@@ -191,6 +191,7 @@ update msg ({ settings } as model) =
             { model
                 | root =
                     model.root
+                        -- FIXME: does not work (blur)
                         |> Canopy.updateValueAt nodeInfo (\ni -> { ni | label = label })
             }
                 ! []
