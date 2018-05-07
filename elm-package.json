@@ -12,7 +12,7 @@
         "Koivu.Tree"
     ],
     "dependencies": {
-        "allo-media/canopy": "3.0.0 <= v < 4.0.0",
+        "allo-media/canopy": "3.1.0 <= v < 4.0.0",
         "brenden/elm-tree-diagram": "3.0.0 <= v < 4.0.0",
         "elm-lang/core": "5.1.1 <= v < 6.0.0",
         "elm-lang/dom": "1.1.1 <= v < 2.0.0",

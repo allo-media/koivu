@@ -125,12 +125,10 @@ deleteNode nodeInfo tree =
         Just (Canopy.Node parent children) ->
             tree
                 |> Canopy.remove nodeInfo
-                |> Canopy.replaceAt parent
-                    (Canopy.node parent
-                        (children
-                            |> List.filter (Canopy.value >> (/=) nodeInfo)
-                            |> spreadShare 100
-                        )
+                |> Canopy.replaceChildrenAt parent
+                    (children
+                        |> List.filter (Canopy.value >> (/=) nodeInfo)
+                        |> spreadShare 100
                     )
 
         Nothing ->
@@ -235,14 +233,8 @@ isLockable target root =
 in the `Settings`.
 -}
 isUnderfed : Int -> Tree -> Bool
-isUnderfed min root =
-    if (Canopy.value root).qty < min then
-        True
-    else
-        root
-            |> Canopy.children
-            |> List.filter (isUnderfed min)
-            |> (\underfed -> List.length underfed > 0)
+isUnderfed min =
+    Canopy.any (\nodeInfo -> nodeInfo.qty < min)
 
 
 maxId : Tree -> Int
@@ -265,13 +257,11 @@ normalize min root =
 
             increasedQty =
                 nodeInfo.qty + 1000
-
-            increased =
-                root
-                    |> Canopy.replaceValue { nodeInfo | qty = increasedQty }
-                    |> distributeQty increasedQty
         in
-            normalize min increased
+            root
+                |> Canopy.replaceValue { nodeInfo | qty = increasedQty }
+                |> distributeQty increasedQty
+                |> normalize min
     else
         root
 
@@ -298,8 +288,8 @@ locked and can't be modified, so distribution is guaranteed across its siblings
 only.
 -}
 toggleLock : NodeInfo -> Tree -> Tree
-toggleLock target root =
-    root |> Canopy.updateValueAt target (\ni -> { ni | locked = not <| ni.locked })
+toggleLock target =
+    Canopy.updateValueAt target (\ni -> { ni | locked = not ni.locked })
 
 
 {-| Update a node share in a tree.
