@@ -160,37 +160,22 @@ If the target node itself is locked, this function is a noop.
 distributeShare : NodeInfo -> Int -> Tree -> Tree
 distributeShare target share root =
     let
-        siblings =
-            root |> Canopy.siblings target
-
-        ( totalShare, nbSiblings, excludeLocked ) =
-            case siblings |> List.filter (Canopy.value >> .locked) |> List.map Canopy.value of
-                [ lockedNodeInfo ] ->
-                    ( 100 - lockedNodeInfo.share
-                    , List.length siblings - 1
-                    , \(Canopy.Node { id } _) -> id /= lockedNodeInfo.id
-                    )
-
-                _ ->
-                    ( 100, List.length siblings, always True )
-
-        toDistribute =
-            case (totalShare - share) // nbSiblings of
-                0 ->
-                    1
-
-                n ->
-                    n
+        update toDistribute siblings =
+            siblings
+                |> List.foldl
+                    (\sibling -> updateShare sibling (min 1 (toDistribute // List.length siblings)))
+                    root
+                |> updateShare target share
     in
-        case root |> Canopy.get target |> Maybe.map (Canopy.value >> .locked) of
-            Just True ->
-                root
+        case lockedSiblings target root of
+            ( Just locked, nonLockedSiblings ) ->
+                if locked == target then
+                    root
+                else
+                    nonLockedSiblings |> update (100 - locked.share - share)
 
-            _ ->
-                siblings
-                    |> List.filter excludeLocked
-                    |> List.foldl (\(Canopy.Node val _) tree -> updateShare val toDistribute tree) root
-                    |> updateShare target share
+            ( Nothing, nonLockedSiblings ) ->
+                nonLockedSiblings |> update (100 - share)
 
 
 {-| Get maximum share a node can reach.
@@ -199,16 +184,12 @@ getMaxSharable : NodeInfo -> Tree -> Int
 getMaxSharable target node =
     -- Note: a node share can't be < 1, so we compute the maximum share for this
     -- node with all siblings having a minimum share of 1
-    let
-        siblings =
-            node |> Canopy.siblings target
-    in
-        case List.filter (Canopy.value >> .locked) siblings of
-            [ Canopy.Node lockedNodeInfo _ ] ->
-                (100 - lockedNodeInfo.share) - (List.length siblings - 1)
+    case lockedSiblings target node of
+        ( Just locked, others ) ->
+            (100 - locked.share) - List.length others
 
-            _ ->
-                100 - List.length siblings
+        ( Nothing, others ) ->
+            100 - List.length others
 
 
 {-| Check whether a node can be locked or not. A node can be locked if:
@@ -235,6 +216,17 @@ in the `Settings`.
 isUnderfed : Int -> Tree -> Bool
 isUnderfed min =
     Canopy.any (\nodeInfo -> nodeInfo.qty < min)
+
+
+lockedSiblings : NodeInfo -> Tree -> ( Maybe NodeInfo, List NodeInfo )
+lockedSiblings target root =
+    let
+        siblings =
+            root |> Canopy.siblings target |> List.map Canopy.value
+    in
+        ( siblings |> List.filter .locked |> List.head
+        , siblings |> List.filter (\ni -> ni /= target && not ni.locked)
+        )
 
 
 maxId : Tree -> Int
