@@ -183,7 +183,7 @@ update msg ({ settings } as model) =
         ToggleLock nodeInfo ->
             { model
                 | editedNode = Nothing
-                , root = model.root |> Tree.toggleLock nodeInfo
+                , root = model.root |> Tree.toggleLock nodeInfo.id
             }
                 ! []
 
@@ -206,7 +206,7 @@ update msg ({ settings } as model) =
             { model
                 | root =
                     model.root
-                        |> Tree.distributeShare nodeInfo share
+                        |> Tree.distributeShare share nodeInfo.id
                         |> distributeAndNormalize settings
             }
                 ! []

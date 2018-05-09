@@ -46,7 +46,7 @@ nodeClasses { root, settings } level node =
             , ( stateClass, True )
             , ( "is-root", root == node )
             , ( "has-children", List.length children > 0 )
-            , ( "can-add-child", Tree.allowExpand settings level children )
+            , ( "can-add-child", Tree.allowExpand settings level node )
             ]
 
 
@@ -97,7 +97,7 @@ rangeForm config node =
             (config.root |> Canopy.siblings nodeInfo |> List.length) == 0
 
         maxSharable =
-            Tree.getMaxSharable nodeInfo config.root
+            Tree.getMaxSharable nodeInfo.id config.root
     in
         if not isRoot && onlyChild then
             text ""
@@ -143,7 +143,7 @@ appendBtn { appendNode, settings } level node =
         nodeInfo =
             Canopy.value node
     in
-        if Tree.allowExpand settings level (Canopy.children node) then
+        if node |> Tree.allowExpand settings level then
             button [ class "btn-append", onClick (appendNode nodeInfo) ]
                 -- FIXME: make these configureable?
                 [ text "+" ]

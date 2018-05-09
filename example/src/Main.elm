@@ -1,7 +1,8 @@
 module Main exposing (..)
 
+import Canopy
 import Koivu exposing (Msg(..))
-import Koivu.Tree as Tree
+import Koivu.Tree as Tree exposing (Tree)
 import Koivu.Settings exposing (Settings)
 import Html exposing (Html)
 import Ports
@@ -13,6 +14,30 @@ type alias Model =
 
 type Msg
     = KoivuMsg Koivu.Msg
+
+
+{-| A sample tree, for demo purpose.
+-}
+demoTree : Tree
+demoTree =
+    Canopy.node
+        { id = 1, label = "Source", qty = 0, share = 100, locked = False }
+        [ Canopy.node
+            { id = 2, label = "Avant-vente", qty = 0, share = 25, locked = False }
+            [ Canopy.leaf { id = 3, label = "Lead converti", qty = 0, share = 50, locked = False }
+            , Canopy.node { id = 10, label = "Non converti", qty = 0, share = 50, locked = False }
+                [ Canopy.leaf { id = 11, label = "Engagé", qty = 0, share = 50, locked = False }
+                , Canopy.leaf { id = 12, label = "Froid", qty = 0, share = 50, locked = False }
+                ]
+            ]
+        , Canopy.node { id = 4, label = "Après vente", qty = 0, share = 25, locked = False }
+            [ Canopy.leaf { id = 5, label = "Pas d'insatisfaction", qty = 0, share = 34, locked = False }
+            , Canopy.leaf { id = 8, label = "Insatisfaction", qty = 0, share = 33, locked = False }
+            , Canopy.leaf { id = 9, label = "Risque d'attrition", qty = 0, share = 33, locked = False }
+            ]
+        , Canopy.leaf { id = 6, label = "Autre demande", qty = 0, share = 25, locked = False }
+        , Canopy.leaf { id = 7, label = "Aucune action", qty = 0, share = 25, locked = False }
+        ]
 
 
 settings : Settings
@@ -31,7 +56,7 @@ settings =
 
 koivu : Koivu.Program
 koivu =
-    Tree.demoTree
+    demoTree
         |> Koivu.setup settings
 
 
