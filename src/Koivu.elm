@@ -44,11 +44,12 @@ You'll find a more elaborate integration example [here](https://github.com/allo-
 
 -}
 
+import Canopy
 import Dom
 import Keyboard
 import Koivu.Internal.SvgEditor as SvgEditor
 import Koivu.Settings exposing (Settings)
-import Koivu.Tree as Tree exposing (Node(..))
+import Koivu.Tree as Tree exposing (Tree, NodeInfo)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -58,8 +59,8 @@ import Task
 {-| Koivu main model.
 -}
 type alias Model =
-    { root : Node
-    , editedNode : Maybe Int
+    { root : Tree
+    , editedNode : Maybe NodeInfo
     , settings : Settings
     }
 
@@ -67,18 +68,18 @@ type alias Model =
 {-| Koivu messages.
 -}
 type Msg
-    = AppendChild Int
+    = AppendChild NodeInfo
     | CancelEdit
     | CommitLabel
-    | DeleteNode Int
-    | EditNode Int
+    | DeleteNode NodeInfo
+    | EditNode NodeInfo
     | NoOp
     | Normalize
     | SetAutoNormalize Bool
-    | ToggleLock Int
-    | UpdateLabel Int String
+    | ToggleLock NodeInfo
+    | UpdateLabel NodeInfo String
     | UpdateQty Int
-    | UpdateShare Int Int
+    | UpdateShare NodeInfo Int
 
 
 {-| A Koivu program.
@@ -93,7 +94,7 @@ type alias Program =
 
 {-| Setup a Koivu program.
 -}
-setup : Settings -> Node -> Program
+setup : Settings -> Tree -> Program
 setup settings root =
     { init = init settings root
     , subscriptions = subscriptions
@@ -102,7 +103,7 @@ setup settings root =
     }
 
 
-init : Settings -> Node -> ( Model, Cmd Msg )
+init : Settings -> Tree -> ( Model, Cmd Msg )
 init settings root =
     { root = root |> Tree.distributeQty settings.globalQty
     , editedNode = Nothing
@@ -111,7 +112,7 @@ init settings root =
         ! []
 
 
-distributeAndNormalize : Settings -> Node -> Node
+distributeAndNormalize : Settings -> Tree -> Tree
 distributeAndNormalize settings root =
     root
         |> Tree.distributeQty settings.globalQty
@@ -124,20 +125,20 @@ distributeAndNormalize settings root =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ settings } as model) =
     case msg of
-        AppendChild id ->
+        AppendChild nodeInfo ->
             let
-                newNode =
-                    Tree.createNode model.root
+                childNodeInfo =
+                    Tree.createNodeInfo model.root
 
                 newModel =
                     { model
                         | root =
                             model.root
-                                |> Tree.appendChild id newNode
+                                |> Tree.appendChild nodeInfo childNodeInfo
                                 |> distributeAndNormalize settings
                     }
             in
-                newModel |> update (EditNode <| Tree.getProp .id newNode)
+                newModel |> update (EditNode childNodeInfo)
 
         CancelEdit ->
             { model | editedNode = Nothing } ! []
@@ -145,19 +146,19 @@ update msg ({ settings } as model) =
         CommitLabel ->
             { model | editedNode = Nothing } ! []
 
-        DeleteNode id ->
+        DeleteNode nodeInfo ->
             { model
                 | editedNode = Nothing
                 , root =
                     model.root
-                        |> Tree.deleteNode id
+                        |> Tree.deleteNode nodeInfo
                         |> distributeAndNormalize settings
             }
                 ! []
 
-        EditNode id ->
-            { model | editedNode = Just id }
-                ! [ ("node" ++ toString id)
+        EditNode nodeInfo ->
+            { model | editedNode = Just nodeInfo }
+                ! [ ("node" ++ toString nodeInfo.id)
                         |> Dom.focus
                         |> Task.attempt (always NoOp)
                   ]
@@ -179,15 +180,20 @@ update msg ({ settings } as model) =
             }
                 ! []
 
-        ToggleLock id ->
+        ToggleLock nodeInfo ->
             { model
                 | editedNode = Nothing
-                , root = model.root |> Tree.toggleLock id
+                , root = model.root |> Tree.toggleLock nodeInfo.id
             }
                 ! []
 
-        UpdateLabel id label ->
-            { model | root = model.root |> Tree.updateLabel id label } ! []
+        UpdateLabel nodeInfo label ->
+            { model
+                | root =
+                    model.root
+                        |> Canopy.updateValueAt nodeInfo (\ni -> { ni | label = label })
+            }
+                ! []
 
         UpdateQty qty ->
             { model
@@ -196,11 +202,11 @@ update msg ({ settings } as model) =
             }
                 ! []
 
-        UpdateShare id share ->
+        UpdateShare nodeInfo share ->
             { model
                 | root =
                     model.root
-                        |> Tree.distributeShare id share
+                        |> Tree.distributeShare share nodeInfo.id
                         |> distributeAndNormalize settings
             }
                 ! []
@@ -212,8 +218,6 @@ update msg ({ settings } as model) =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    -- FIXME: this triggers many updates for no reason, couldn't filter Esc
-    -- key here ?
     Sub.batch
         [ Keyboard.ups
             (\keyCode ->

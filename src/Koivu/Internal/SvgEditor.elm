@@ -1,12 +1,13 @@
 module Koivu.Internal.SvgEditor exposing (view)
 
+import Canopy
 import Koivu.Internal.EditorConfig exposing (EditorConfig)
 import Koivu.Internal.NodeHtml as NodeHtml
 import Koivu.Settings exposing (Settings)
-import Koivu.Tree exposing (Node(..))
+import Koivu.Tree as Tree exposing (Tree)
 import Svg exposing (Svg)
 import Svg.Attributes exposing (..)
-import TreeDiagram exposing (Tree, TreeLayout)
+import TreeDiagram
 import TreeDiagram.Svg as SvgTree
 
 
@@ -15,7 +16,7 @@ import TreeDiagram.Svg as SvgTree
     prop (toString value)
 
 
-treeLayout : Settings -> TreeLayout
+treeLayout : Settings -> TreeDiagram.TreeLayout
 treeLayout { nodeWidth, nodeHeight, nodePadding } =
     { orientation = TreeDiagram.topToBottom
     , levelHeight = nodeHeight + nodePadding
@@ -49,7 +50,7 @@ toCenter { nodeWidth, nodeHeight } =
         "translate(" ++ toString padX ++ " " ++ toString padY ++ ")"
 
 
-drawNode : EditorConfig msg -> ( Int, Node ) -> Svg msg
+drawNode : EditorConfig msg -> ( Int, Tree.Tree ) -> Svg msg
 drawNode ({ settings } as config) ( level, node ) =
     Svg.foreignObject
         [ width => settings.nodeWidth
@@ -59,13 +60,13 @@ drawNode ({ settings } as config) ( level, node ) =
         [ NodeHtml.view config level node ]
 
 
-toTree : EditorConfig msg -> Int -> Node -> Tree ( Int, Node )
-toTree config level ((Node nodeInfo) as node) =
-    List.map (toTree config (level + 1)) nodeInfo.children
+toTree : EditorConfig msg -> Int -> Tree -> TreeDiagram.Tree ( Int, Tree )
+toTree config level node =
+    List.map (toTree config (level + 1)) (Canopy.children node)
         |> TreeDiagram.node ( level, node )
 
 
-view : EditorConfig msg -> Node -> Svg msg
+view : EditorConfig msg -> Tree -> Svg msg
 view config node =
     toTree config 0 node
         |> SvgTree.draw (treeLayout config.settings) (drawNode config) drawLine
