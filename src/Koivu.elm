@@ -31,11 +31,11 @@ module Koivu
 
     main : Program Never Koivu.Model Koivu.Msg
     main =
-        Tree.demoTree
+        Tree.empty
             |> Koivu.setup settings
             |> Html.program
 
-You'll find a more elaborate integration example [here](https://github.com/allo-media/koivu/tree/2.0.0/example).
+You'll find a more elaborate integration example [here](https://github.com/allo-media/koivu/tree/4.0.0/example).
 
 
 # Documentation
