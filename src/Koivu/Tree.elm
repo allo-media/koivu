@@ -291,20 +291,30 @@ normalize min root =
 
 
 {-| Reset tree nodes share distribution equitably and recompute node quantities accordingly.
+
+Note: the root node is reset with a share of 100.
+
 -}
 resetDistribution : Int -> Tree -> Tree
 resetDistribution globalQty tree =
     let
-        resetShares ((Canopy.Node _ children) as tree) =
-            tree
-                |> Canopy.mapChildren
-                    (Canopy.updateValue (\ni -> { ni | share = 100 // List.length children })
-                        >> Canopy.mapChildren resetShares
+        mapper (Canopy.Node _ siblings) child =
+            child
+                |> Canopy.updateValue
+                    (\ni ->
+                        { ni
+                            | share =
+                                if List.length siblings == 0 then
+                                    100
+                                else
+                                    100 // List.length siblings
+                        }
                     )
+                |> Canopy.mapChildren (mapper child)
     in
         tree
             |> Canopy.updateValue (\ni -> { ni | share = 100 })
-            |> resetShares
+            |> Canopy.mapChildren (mapper tree)
             |> distributeQty globalQty
 
 

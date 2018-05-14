@@ -36,7 +36,7 @@ suite =
                         |> Tree.distributeShare 22 8
                         |> Tree.findNodes [ 5, 8, 9 ]
                         |> List.map (Tree.getProp .share)
-                        |> Expect.equal ([ 34, 22, 44 ])
+                        |> Expect.equal ([ 33, 22, 45 ])
                         |> asTest "should distribute share handling a locked node and two siblings"
                     ]
                 , describe "Three siblings"
@@ -61,7 +61,7 @@ suite =
             [ demoTree
                 |> Tree.toggleLock 5
                 |> Tree.getMaxSharable 8
-                |> Expect.equal 65
+                |> Expect.equal 66
                 |> asTest "should compute maximum sharable value for node"
             , demoTree
                 |> Tree.toggleLock 8
@@ -72,10 +72,23 @@ suite =
         , describe "resetDistribution"
             [ demoTree
                 |> Tree.distributeShare 40 11
-                |> Debug.log "tree"
                 |> Tree.resetDistribution 100000
                 |> Expect.equal demoTree
                 |> asTest "should reset node shares distribution"
+            , Canopy.node
+                { id = 0, label = "root", qty = 0, share = 0, locked = False }
+                [ Canopy.node { id = 1, label = "node 1", qty = 0, share = 0, locked = False }
+                    [ Canopy.leaf { id = 2, label = "node 2", qty = 0, share = 0, locked = False } ]
+                ]
+                |> Tree.resetDistribution 42
+                |> Expect.equal
+                    (Canopy.node
+                        { id = 0, label = "root", qty = 42, share = 100, locked = False }
+                        [ Canopy.node { id = 1, label = "node 1", qty = 42, share = 100, locked = False }
+                            [ Canopy.leaf { id = 2, label = "node 2", qty = 42, share = 100, locked = False } ]
+                        ]
+                    )
+                |> asTest "should deeply propagate redistribution"
             ]
         ]
 
@@ -95,7 +108,7 @@ demoTree =
                 ]
             ]
         , Canopy.node { id = 4, label = "Après vente", qty = 25000, share = 25, locked = False }
-            [ Canopy.leaf { id = 5, label = "Pas d'insatisfaction", qty = 8500, share = 34, locked = False }
+            [ Canopy.leaf { id = 5, label = "Pas d'insatisfaction", qty = 8250, share = 33, locked = False }
             , Canopy.leaf { id = 8, label = "Insatisfaction", qty = 8250, share = 33, locked = False }
             , Canopy.leaf { id = 9, label = "Risque d'attrition", qty = 8250, share = 33, locked = False }
             ]
