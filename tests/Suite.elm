@@ -69,6 +69,14 @@ suite =
                 |> Expect.equal 66
                 |> asTest "should compute maximum sharable value for a sibling"
             ]
+        , describe "resetDistribution"
+            [ demoTree
+                |> Tree.distributeShare 40 11
+                |> Debug.log "tree"
+                |> Tree.resetDistribution 100000
+                |> Expect.equal demoTree
+                |> asTest "should reset node shares distribution"
+            ]
         ]
 
 
@@ -77,20 +85,20 @@ suite =
 demoTree : Tree
 demoTree =
     Canopy.node
-        { id = 1, label = "Source", qty = 0, share = 100, locked = False }
+        { id = 1, label = "Source", qty = 100000, share = 100, locked = False }
         [ Canopy.node
-            { id = 2, label = "Avant-vente", qty = 0, share = 25, locked = False }
-            [ Canopy.leaf { id = 3, label = "Lead converti", qty = 0, share = 50, locked = False }
-            , Canopy.node { id = 10, label = "Non converti", qty = 0, share = 50, locked = False }
-                [ Canopy.leaf { id = 11, label = "Engagé", qty = 0, share = 50, locked = False }
-                , Canopy.leaf { id = 12, label = "Froid", qty = 0, share = 50, locked = False }
+            { id = 2, label = "Avant-vente", qty = 25000, share = 25, locked = False }
+            [ Canopy.leaf { id = 3, label = "Lead converti", qty = 12500, share = 50, locked = False }
+            , Canopy.node { id = 10, label = "Non converti", qty = 12500, share = 50, locked = False }
+                [ Canopy.leaf { id = 11, label = "Engagé", qty = 6250, share = 50, locked = False }
+                , Canopy.leaf { id = 12, label = "Froid", qty = 6250, share = 50, locked = False }
                 ]
             ]
-        , Canopy.node { id = 4, label = "Après vente", qty = 0, share = 25, locked = False }
-            [ Canopy.leaf { id = 5, label = "Pas d'insatisfaction", qty = 0, share = 34, locked = False }
-            , Canopy.leaf { id = 8, label = "Insatisfaction", qty = 0, share = 33, locked = False }
-            , Canopy.leaf { id = 9, label = "Risque d'attrition", qty = 0, share = 33, locked = False }
+        , Canopy.node { id = 4, label = "Après vente", qty = 25000, share = 25, locked = False }
+            [ Canopy.leaf { id = 5, label = "Pas d'insatisfaction", qty = 8500, share = 34, locked = False }
+            , Canopy.leaf { id = 8, label = "Insatisfaction", qty = 8250, share = 33, locked = False }
+            , Canopy.leaf { id = 9, label = "Risque d'attrition", qty = 8250, share = 33, locked = False }
             ]
-        , Canopy.leaf { id = 6, label = "Autre demande", qty = 0, share = 25, locked = False }
-        , Canopy.leaf { id = 7, label = "Aucune action", qty = 0, share = 25, locked = False }
+        , Canopy.leaf { id = 6, label = "Autre demande", qty = 25000, share = 25, locked = False }
+        , Canopy.leaf { id = 7, label = "Aucune action", qty = 25000, share = 25, locked = False }
         ]

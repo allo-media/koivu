@@ -17,6 +17,7 @@ module Koivu.Tree
         , isLockable
         , isUnderfed
         , normalize
+        , resetDistribution
         , toggleLock
         , updateShare
         )
@@ -41,7 +42,7 @@ module Koivu.Tree
 
 # Normalizing a tree
 
-@docs distributeShare, distributeQty, normalize
+@docs distributeShare, distributeQty, normalize, resetDistribution
 
 
 # Encoding
@@ -287,6 +288,24 @@ normalize min root =
                 |> normalize min
     else
         root
+
+
+{-| Reset tree nodes share distribution equitably and recompute node quantities accordingly.
+-}
+resetDistribution : Int -> Tree -> Tree
+resetDistribution globalQty tree =
+    let
+        resetShares ((Canopy.Node _ children) as tree) =
+            tree
+                |> Canopy.mapChildren
+                    (Canopy.updateValue (\ni -> { ni | share = 100 // List.length children })
+                        >> Canopy.mapChildren resetShares
+                    )
+    in
+        tree
+            |> Canopy.updateValue (\ni -> { ni | share = 100 })
+            |> resetShares
+            |> distributeQty globalQty
 
 
 {-| Spread shares across a list of nodes.
